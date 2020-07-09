@@ -20,4 +20,4 @@ workload_configs: {
   }
   num_operations: 1000
 }
-thread_env_config: { num_threads: 1 }
+thread_env_config: { num_threads: 10 }
