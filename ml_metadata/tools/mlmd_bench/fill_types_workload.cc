@@ -99,7 +99,7 @@ tensorflow::Status MakeUpTypesForUpdate(
 // Initializes the properties of the `put_request` according to
 // `fill_types_config`.
 void InitializePutRequest(const FillTypesConfig& fill_types_config,
-                          FillTypeWorkItemType& put_request) {
+                          FillTypesWorkItemType& put_request) {
   switch (fill_types_config.specification()) {
     case FillTypesConfig::ARTIFACT_TYPE: {
       put_request.emplace<PutArtifactTypeRequest>();
@@ -229,7 +229,7 @@ tensorflow::Status FillTypes::SetUpImpl(MetadataStore* store) {
 
   for (int64 i = num_total_type; i < num_total_type + num_operations_; i++) {
     curr_bytes = 0;
-    FillTypeWorkItemType put_request;
+    FillTypesWorkItemType put_request;
     InitializePutRequest(fill_types_config_, put_request);
     // Updates the first `num_operations_` types inside db.
     const int64 update_type_index = i - num_total_type;

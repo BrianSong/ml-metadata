@@ -3,9 +3,6 @@ mlmd_config: {
     filename_uri: "mlmd-bench-34543yaradsg.db"
     connection_mode: READWRITE_OPENCREATE
   }
-  retry_options: {
-    max_num_retries: 1
-  }
 }
 workload_configs: { 
   fill_types_config: {
