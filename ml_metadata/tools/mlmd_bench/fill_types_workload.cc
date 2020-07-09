@@ -156,6 +156,9 @@ FillTypes::FillTypes(const FillTypesConfig& fill_types_config,
     default:
       LOG(FATAL) << "Wrong specification for FillTypes!";
   }
+  if (fill_types_config_.update()) {
+    name_ += "(update)";
+  }
 }
 
 tensorflow::Status FillTypes::SetUpImpl(MetadataStore* store) {
