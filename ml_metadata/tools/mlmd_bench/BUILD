@@ -22,6 +22,21 @@ licenses(["notice"])  # Apache 2.0
 package(default_visibility = ["//visibility:private"])
 
 cc_library(
+    name = "fill_nodes_workload",
+    srcs = ["fill_nodes_workload.cc"],
+    hdrs = ["fill_nodes_workload.h"],
+    deps = [
+        ":workload",
+        "@com_google_absl//absl/types:variant",
+        "//ml_metadata/metadata_store:metadata_store",
+        "//ml_metadata/metadata_store:types",
+        "//ml_metadata/proto:metadata_store_service_proto",
+        "//ml_metadata/tools/mlmd_bench/proto:mlmd_bench_proto",
+        "@org_tensorflow//tensorflow/core:lib",
+    ]
+)
+
+cc_library(
     name = "fill_types_workload",
     srcs = ["fill_types_workload.cc"],
     hdrs = ["fill_types_workload.h"],
