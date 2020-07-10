@@ -46,6 +46,7 @@ int main(int argc, char** argv) {
   ml_metadata::MLMDBenchConfig mlmd_bench_config;
   ml_metadata::InitMLMDBenchConfigFromPbtxtFile(argv, mlmd_bench_config);
   srand(time(NULL));
+
   // Feeds the config. into the benchmark for generating executable workloads.
   ml_metadata::Benchmark benchmark(mlmd_bench_config);
   ml_metadata::ThreadRunner runner(mlmd_bench_config);
