@@ -91,10 +91,14 @@ tensorflow::Status MakeUpTypesForUpdate(
   TF_RETURN_IF_ERROR(make_up_fill_types->SetUp(store));
   for (int64 i = 0; i < num_type_to_make_up; ++i) {
     OpStats op_stats;
+<<<<<<< HEAD
     tensorflow::Status status = make_up_fill_types->RunOp(i, store, op_stats);
     if (!status.ok()) {
       LOG(WARNING) << "Error from make up step" << status;
     }
+=======
+    TF_CHECK_OK(make_up_fill_types->RunOp(i, store, op_stats));
+>>>>>>> Found multi-thread bug
   }
   return tensorflow::Status::OK();
 }

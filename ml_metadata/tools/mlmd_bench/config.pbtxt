@@ -18,14 +18,6 @@ workload_configs: {
   specification: ARTIFACT_TYPE
   num_properties: { minimum: 1 maximum: 10 }
   }
-  num_operations: 500
-}
-workload_configs: { 
-  fill_types_config: {
-  update: true
-  specification: ARTIFACT_TYPE
-  num_properties: { minimum: 1 maximum: 10 }
-  }
   num_operations: 1000
 }
-thread_env_config: { num_threads: 1 }
+thread_env_config: { num_threads: 10 }
