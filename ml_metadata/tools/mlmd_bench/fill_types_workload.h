@@ -25,19 +25,19 @@ limitations under the License.
 
 namespace ml_metadata {
 
-// Defines a FillTypeWorkItemType that can be PutArtifactTypeRequest /
+// Defines a FillTypesWorkItemType that can be PutArtifactTypeRequest /
 // PutExecutionTypeRequest / PutContextTypeRequest.
-using FillTypeWorkItemType =
+using FillTypesWorkItemType =
     absl::variant<PutArtifactTypeRequest, PutExecutionTypeRequest,
                   PutContextTypeRequest>;
-// GetTypeResponseType can be GetArtifactTypesResponse /
+// GetTypesResponseType can be GetArtifactTypesResponse /
 // GetExecutionTypesResponse / GetContextTypesResponse.
-using GetTypeResponseType =
+using GetTypesResponseType =
     absl::variant<GetArtifactTypesResponse, GetExecutionTypesResponse,
                   GetContextTypesResponse>;
 // A specific workload for creating and updating types: ArtifactTypes /
 // ExecutionTypes / ContextTypes.
-class FillTypes : public Workload<FillTypeWorkItemType> {
+class FillTypes : public Workload<FillTypesWorkItemType> {
  public:
   FillTypes(const FillTypesConfig& fill_types_config, int64 num_operations);
   ~FillTypes() override = default;
