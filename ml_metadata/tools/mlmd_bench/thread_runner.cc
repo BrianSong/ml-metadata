@@ -39,7 +39,6 @@ ThreadRunner::ThreadRunner(const MLMDBenchConfig& mlmd_bench_config)
 tensorflow::Status ThreadRunner::Run(Benchmark& benchmark) {
   // Loops over all the workloads inside the benchmark and executes them one by
   // one.
-  int workload_index = 0;
   for (auto& workload : benchmark.workloads()) {
     Stats thread_stats_list[num_threads_];
     int64 op_per_thread = workload.second / num_threads_;
