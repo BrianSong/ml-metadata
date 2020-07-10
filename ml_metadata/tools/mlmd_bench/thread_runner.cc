@@ -59,15 +59,22 @@ tensorflow::Status ThreadRunner::Run(Benchmark& benchmark) {
           thread++;
           lock_.Unlock();
           std::unique_ptr<MetadataStore> store;
-          const MigrationOptions opts;
-          CreateMetadataStore(mlmd_config_, opts, &store);
+          CreateMetadataStore(mlmd_config_, &store);
           int64 start_index = op_per_thread * curr_thread;
           thread_stats_list[curr_thread].Start();
           // Executes the current workload by the specified index of work item.
-          for (int64 i = start_index; i < start_index + op_per_thread; ++i) {
+          i = start_index;
+          while (i < start_index + op_per_thread) {
             // Each operation will has a op_stats.
             OpStats op_stats;
-            workload.first->RunOp(i, store.get(), op_stats);
+            tensorflow::Status status =
+                workload.first->RunOp(i, store.get(), op_stats);
+            if (!status.ok()) {
+              LOG(WARNING) << "Error from thread runner" << status;
+              break;
+            }
+            std::cout << i << std::endl;
+            i++;
             lock_.Lock();
             total_done++;
             lock_.Unlock();
