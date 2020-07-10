@@ -91,10 +91,7 @@ tensorflow::Status MakeUpTypesForUpdate(
   TF_RETURN_IF_ERROR(make_up_fill_types->SetUp(store));
   for (int64 i = 0; i < num_type_to_make_up; ++i) {
     OpStats op_stats;
-    tensorflow::Status status = make_up_fill_types->RunOp(i, store, op_stats);
-    if (!status.ok()) {
-      LOG(WARNING) << "Error from make up step" << status;
-    }
+    TF_CHECK_OK(make_up_fill_types->RunOp(i, store, op_stats));
   }
   return tensorflow::Status::OK();
 }
@@ -287,21 +284,33 @@ tensorflow::Status FillTypes::RunOpImpl(const int64 work_items_index,
       PutArtifactTypeRequest put_request =
           absl::get<PutArtifactTypeRequest>(work_items_[i].first);
       PutArtifactTypeResponse put_response;
+<<<<<<< HEAD
       TF_RETURN_IF_ERROR(store->PutArtifactType(put_request, &put_response));
+=======
+      TF_CHECK_OK(store->PutArtifactType(put_request, &put_response));
+>>>>>>> Found multi-thread bug
       return tensorflow::Status::OK();
     }
     case FillTypesConfig::EXECUTION_TYPE: {
       PutExecutionTypeRequest put_request =
           absl::get<PutExecutionTypeRequest>(work_items_[i].first);
       PutExecutionTypeResponse put_response;
+<<<<<<< HEAD
       TF_RETURN_IF_ERROR(store->PutExecutionType(put_request, &put_response));
+=======
+      TF_CHECK_OK(store->PutExecutionType(put_request, &put_response));
+>>>>>>> Found multi-thread bug
       return tensorflow::Status::OK();
     }
     case FillTypesConfig::CONTEXT_TYPE: {
       PutContextTypeRequest put_request =
           absl::get<PutContextTypeRequest>(work_items_[i].first);
       PutContextTypeResponse put_response;
+<<<<<<< HEAD
       TF_RETURN_IF_ERROR(store->PutContextType(put_request, &put_response));
+=======
+      TF_CHECK_OK(store->PutContextType(put_request, &put_response));
+>>>>>>> Found multi-thread bug
       return tensorflow::Status::OK();
     }
     default:
