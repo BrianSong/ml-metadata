@@ -70,7 +70,6 @@ message FillNodesConfig {
   optional UniformDistribution string_value_bytes = 4;
 }
 
-
 // The mlmd_bench workload config.
 message WorkloadConfig {
   oneof workload_config {

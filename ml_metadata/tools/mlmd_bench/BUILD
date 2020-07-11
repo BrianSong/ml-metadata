@@ -33,7 +33,7 @@ cc_library(
         "//ml_metadata/proto:metadata_store_service_proto",
         "//ml_metadata/tools/mlmd_bench/proto:mlmd_bench_proto",
         "@org_tensorflow//tensorflow/core:lib",
-    ]
+    ],
 )
 
 cc_library(
@@ -92,7 +92,7 @@ ml_metadata_cc_test(
         ":stats",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
-    ]
+    ],
 )
 
 cc_library(
@@ -104,7 +104,7 @@ cc_library(
         ":workload",
         "//ml_metadata/metadata_store:types",
         "//ml_metadata/tools/mlmd_bench/proto:mlmd_bench_proto",
-    ]
+    ],
 )
 
 ml_metadata_cc_test(
@@ -115,7 +115,7 @@ ml_metadata_cc_test(
         "benchmark",
         "@com_google_googletest//:gtest_main",
         "//ml_metadata/tools/mlmd_bench/proto:mlmd_bench_proto",
-    ]
+    ],
 )
 
 cc_library(
@@ -133,7 +133,7 @@ cc_library(
         "//ml_metadata/proto:metadata_store_proto",
         "//ml_metadata/tools/mlmd_bench/proto:mlmd_bench_proto",
         "@org_tensorflow//tensorflow/core:lib",
-    ]
+    ],
 )
 
 ml_metadata_cc_test(
@@ -153,7 +153,7 @@ ml_metadata_cc_test(
         "//ml_metadata/tools/mlmd_bench/proto:mlmd_bench_proto",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",
-    ]
+    ],
 )
 
 cc_library(
