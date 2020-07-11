@@ -1,10 +1,7 @@
 mlmd_config: {
   sqlite: {
-    filename_uri: "mlmd-bench-nbvcxsreytu.db"
+    filename_uri: "mlmd-bench-34543yaradsg.db"
     connection_mode: READWRITE_OPENCREATE
-  }
-  retry_options: {
-    max_num_retries: 1000000000000
   }
 }
 workload_configs: { 
@@ -23,4 +20,4 @@ workload_configs: {
   }
   num_operations: 1000
 }
-thread_env_config: { num_threads: 10 }
+thread_env_config: { num_threads: 1 }
