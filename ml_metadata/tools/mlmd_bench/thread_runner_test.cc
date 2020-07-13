@@ -26,7 +26,7 @@ limitations under the License.
 namespace ml_metadata {
 namespace {
 
-// Test the Run() of ThreadRunner class.
+// Tests the Run() of ThreadRunner class.
 TEST(ThreadRunnerTest, RunTest) {
   MLMDBenchConfig mlmd_bench_config =
       testing::ParseTextProtoOrDie<MLMDBenchConfig>(

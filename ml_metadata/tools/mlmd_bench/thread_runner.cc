@@ -63,18 +63,16 @@ tensorflow::Status ThreadRunner::Run(Benchmark& benchmark) {
           int64 start_index = op_per_thread * curr_thread;
           thread_stats_list[curr_thread].Start();
           // Executes the current workload by the specified index of work item.
-          i = start_index;
-          while (i < start_index + op_per_thread) {
+          int64 work_items_index = start_index;
+          while (work_items_index < start_index + op_per_thread) {
             // Each operation will has a op_stats.
             OpStats op_stats;
             tensorflow::Status status =
-                workload.first->RunOp(i, store.get(), op_stats);
+                workload.first->RunOp(work_items_index, store.get(), op_stats);
             if (!status.ok()) {
-              LOG(WARNING) << "Error from thread runner" << status;
-              break;
+              continue;
             }
-            std::cout << i << std::endl;
-            i++;
+            work_items_index++;
             lock_.Lock();
             total_done++;
             lock_.Unlock();
@@ -86,7 +84,7 @@ tensorflow::Status ThreadRunner::Run(Benchmark& benchmark) {
       }
     }
     TF_RETURN_IF_ERROR(workload.first->TearDown());
-    // Merge all the thread stats of the current workload.
+    // Merges all the thread stats of the current workload.
     for (int64 i = 1; i < num_threads_; ++i) {
       thread_stats_list[0].Merge(thread_stats_list[i]);
     }

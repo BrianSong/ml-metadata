@@ -28,6 +28,7 @@ namespace ml_metadata {
 class ThreadRunner {
  public:
   ThreadRunner(const MLMDBenchConfig& mlmd_bench_config);
+  ~ThreadRunner() = default;
 
   // Execution unit of mlmd_bench. Returns detailed error if query executions
   // failed.

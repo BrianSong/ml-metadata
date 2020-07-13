@@ -22,6 +22,7 @@ limitations under the License.
 #include "ml_metadata/tools/mlmd_bench/benchmark.h"
 #include "ml_metadata/tools/mlmd_bench/proto/mlmd_bench.pb.h"
 #include "ml_metadata/tools/mlmd_bench/thread_runner.h"
+#include "tensorflow/core/lib/core/status.h"
 
 namespace ml_metadata {
 namespace {
@@ -51,7 +52,10 @@ int main(int argc, char** argv) {
   ml_metadata::Benchmark benchmark(mlmd_bench_config);
   ml_metadata::ThreadRunner runner(mlmd_bench_config);
   // Executes the workloads inside the benchmark with the thread runner.
-  runner.Run(benchmark);
+  tensorflow::Status status = runner.Run(benchmark);
+  if (!status.ok()) {
+    LOG(WARNING) << status;
+  }
 
   return 0;
 }

@@ -76,7 +76,6 @@ tensorflow::Status GetNumberOfTypes(const FillTypesConfig& fill_types_config,
   }
 
   num_total_type = num_artifact_type + num_execution_type + num_context_type;
-  std::cout << num_total_type << std::endl;
   return tensorflow::Status::OK();
 }
 
@@ -92,10 +91,7 @@ tensorflow::Status MakeUpTypesForUpdate(
   TF_RETURN_IF_ERROR(make_up_fill_types->SetUp(store));
   for (int64 i = 0; i < num_type_to_make_up; ++i) {
     OpStats op_stats;
-    tensorflow::Status status = make_up_fill_types->RunOp(i, store, op_stats);
-    if (!status.ok()) {
-      LOG(WARNING) << "Error from make up step" << status;
-    }
+    TF_RETURN_IF_ERROR(make_up_fill_types->RunOp(i, store, op_stats));
   }
   return tensorflow::Status::OK();
 }
