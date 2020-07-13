@@ -77,6 +77,11 @@ void InitializePutRequest(const FillNodesConfig& fill_nodes_config,
   }
 }
 
+template <typename Type, typename NodeType>
+void GenerateNode(const int64 num_properties, const int64 string_value_bytes,
+                  const Type& existed_type, NodeType& node, int64& curr_bytes) {
+}
+
 }  // namespace
 
 FillNodes::FillNodes(const FillNodesConfig& fill_nodes_config,
@@ -136,12 +141,30 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
     const int64 type_index = uniform_dist_type_index(gen);
     switch (fill_nodes_config_.specification()) {
       case FillNodesConfig::ARTIFACT: {
+        GenerateNode<ArtifactType, Artifact>(
+            num_properties, string_value_bytes,
+            absl::get<GetArtifactTypesResponse>(get_response)
+                .artifact_types()[type_index],
+            *(absl::get<PutArtifactsRequest>(put_request).add_artifacts()),
+            curr_bytes);
         break;
       }
       case FillNodesConfig::EXECUTION: {
+        GenerateNode<ExecutionType, Execution>(
+            num_properties, string_value_bytes,
+            absl::get<GetExecutionTypesResponse>(get_response)
+                .execution_types()[type_index],
+            *(absl::get<PutExecutionsRequest>(put_request).add_executions()),
+            curr_bytes);
         break;
       }
       case FillNodesConfig::CONTEXT: {
+        GenerateNode<ContextType, Context>(
+            num_properties, string_value_bytes,
+            absl::get<GetContextTypesResponse>(get_response)
+                .context_types()[type_index],
+            *(absl::get<PutContextsRequest>(put_request).add_contexts()),
+            curr_bytes);
         break;
       }
       default:
@@ -149,5 +172,44 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
     }
   }
 }
+
+// Executions of work items.
+tensorflow::Status FillNodes::RunOpImpl(const int64 work_items_index,
+                                        MetadataStore* store) {
+  switch (fill_nodes_config_.specification()) {
+    case FillNodesConfig::ARTIFACT: {
+      PutArtifactsRequest put_request =
+          absl::get<PutArtifactsRequest>(work_items_[work_items_index].first);
+      PutArtifactsResponse put_response;
+      TF_RETURN_IF_ERROR(store->PutArtifacts(put_request, &put_response));
+      return tensorflow::Status::OK();
+    }
+    case FillNodesConfig::EXECUTION: {
+      PutExecutionsRequest put_request =
+          absl::get<PutExecutionsRequest>(work_items_[work_items_index].first);
+      PutExecutionsResponse put_response;
+      TF_RETURN_IF_ERROR(store->PutExecutions(put_request, &put_response));
+      return tensorflow::Status::OK();
+    }
+    case FillNodesConfig::CONTEXT: {
+      PutContextsRequest put_request =
+          absl::get<PutContextsRequest>(work_items_[work_items_index].first);
+      PutContextsResponse put_response;
+      TF_RETURN_IF_ERROR(store->PutContexts(put_request, &put_response));
+      return tensorflow::Status::OK();
+    }
+    default:
+      return tensorflow::errors::InvalidArgument("Wrong specification!");
+  }
+  return tensorflow::errors::InvalidArgument(
+      "Cannot execute the query due to wrong specification!");
+}
+
+tensorflow::Status FillNodes::TearDownImpl() {
+  work_items_.clear();
+  return tensorflow::Status::OK();
+}
+
+std::string FillNodes::GetName() { return name_; }
 
 }  // namespace ml_metadata
