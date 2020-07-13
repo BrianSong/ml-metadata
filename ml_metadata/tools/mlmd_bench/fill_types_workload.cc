@@ -75,7 +75,6 @@ tensorflow::Status GetNumberOfTypes(const FillTypesConfig& fill_types_config,
   }
 
   num_total_type = num_artifact_type + num_execution_type + num_context_type;
-  std::cout << num_total_type << std::endl;
   return tensorflow::Status::OK();
 }
 
