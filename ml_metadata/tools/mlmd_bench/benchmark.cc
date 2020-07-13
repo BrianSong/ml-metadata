@@ -24,7 +24,7 @@ limitations under the License.
 namespace ml_metadata {
 
 Benchmark::Benchmark(const MLMDBenchConfig& mlmd_bench_config) {
-  // For each workload config., calls CreateWorkload() to create corresponding
+  // For each `workload_config`, calls CreateWorkload() to create corresponding
   // workload.
   for (const WorkloadConfig& workload_config :
        mlmd_bench_config.workload_configs()) {

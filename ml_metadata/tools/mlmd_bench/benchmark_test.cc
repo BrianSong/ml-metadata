@@ -15,6 +15,7 @@ limitations under the License.
 #include "ml_metadata/tools/mlmd_bench/benchmark.h"
 
 #include <gtest/gtest.h>
+#include "ml_metadata/metadata_store/test_util.h"
 #include "ml_metadata/tools/mlmd_bench/proto/mlmd_bench.pb.h"
 
 namespace ml_metadata {
@@ -22,15 +23,21 @@ namespace {
 
 // Tests the CreateWorkload() of Benchmark class.
 TEST(BenchmarkTest, CreatWorkloadTest) {
-  MLMDBenchConfig mlmd_bench_config;
-  WorkloadConfig* workload_config = mlmd_bench_config.add_workload_configs();
-  FillTypesConfig* fill_types_config =
-      workload_config->mutable_fill_types_config();
-  fill_types_config->set_specification(FillTypesConfig::ARTIFACT_TYPE);
-
+  MLMDBenchConfig mlmd_bench_config =
+      testing::ParseTextProtoOrDie<MLMDBenchConfig>(
+          R"(
+            workload_configs: {
+              fill_types_config: {
+                update: false
+                specification: ARTIFACT_TYPE
+                num_properties: { minimum: 1 maximum: 10 }
+              }
+              num_operations: 100
+            }
+          )");
   Benchmark benchmark(mlmd_bench_config);
-  // Checks that indeed one workload has been created according to the input
-  // workload config.
+  // Checks that indeed one workload has been created according to
+  // `workload_configs`.
   EXPECT_STREQ(benchmark.workloads()[0].first->GetName().c_str(),
                "fill_artifact_type");
 }

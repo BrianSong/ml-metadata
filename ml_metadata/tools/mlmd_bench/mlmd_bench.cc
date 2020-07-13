@@ -23,6 +23,7 @@ limitations under the License.
 #include "ml_metadata/tools/mlmd_bench/proto/mlmd_bench.pb.h"
 #include "ml_metadata/tools/mlmd_bench/thread_runner.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/logging.h"
 
 namespace ml_metadata {
 namespace {

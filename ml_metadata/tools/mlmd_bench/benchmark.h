@@ -30,14 +30,13 @@ class Benchmark {
   Benchmark(const MLMDBenchConfig& mlmd_bench_config);
   ~Benchmark();
 
-  // Takes an array of workload configurations(`workload_config`) and generates
-  // corresponding executable workloads
+  // Takes `workload_config` and generates corresponding executable workloads.
   void CreateWorkload(const WorkloadConfig& workload_config);
 
   std::vector<std::pair<std::unique_ptr<WorkloadBase>, int64>>& workloads();
 
  private:
-  // A list of executable workloads and their number of operations.
+  // A list of executable workloads and the according number of operations.
   std::vector<std::pair<std::unique_ptr<WorkloadBase>, int64>> workloads_;
 };
 

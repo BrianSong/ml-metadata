@@ -30,20 +30,21 @@ void Stats::Update(const OpStats& op_stats, const int64& total_done) {
   done_++;
   // Reports the current progress.
   if (total_done >= next_report_) {
-    if (next_report_ < 1000)
+    if (next_report_ < 1000) {
       next_report_ += 100;
-    else if (next_report_ < 5000)
+    } else if (next_report_ < 5000) {
       next_report_ += 500;
-    else if (next_report_ < 10000)
+    } else if (next_report_ < 10000) {
       next_report_ += 1000;
-    else if (next_report_ < 50000)
+    } else if (next_report_ < 50000) {
       next_report_ += 5000;
-    else if (next_report_ < 100000)
+    } else if (next_report_ < 100000) {
       next_report_ += 10000;
-    else if (next_report_ < 500000)
+    } else if (next_report_ < 500000) {
       next_report_ += 50000;
-    else
+    } else {
       next_report_ += 100000;
+    }
     std::fprintf(stderr, "... finished %lld ops%30s\r", total_done, "");
     std::fflush(stderr);
   }

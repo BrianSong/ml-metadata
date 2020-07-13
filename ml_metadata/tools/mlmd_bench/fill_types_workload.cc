@@ -26,6 +26,7 @@ limitations under the License.
 #include "ml_metadata/tools/mlmd_bench/proto/mlmd_bench.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/logging.h"
 
 namespace ml_metadata {
 namespace {
@@ -198,10 +199,9 @@ tensorflow::Status FillTypes::SetUpImpl(MetadataStore* store) {
   int64 curr_bytes = 0;
   // Uniform distribution that describes the number of properties for each
   // generated types.
-  UniformDistribution num_properties = fill_types_config_.num_properties();
-  int64 min = num_properties.minimum();
-  int64 max = num_properties.maximum();
-  std::uniform_int_distribution<int64> uniform_dist{min, max};
+  UniformDistribution num_properties_dist = fill_types_config_.num_properties();
+  std::uniform_int_distribution<int64> uniform_dist{
+      num_properties_dist.minimum(), num_properties_dist.maximum()};
   // The seed for the random generator is the time when the FillTypes is
   // created.
   std::minstd_rand0 gen(absl::ToUnixMillis(absl::Now()));

@@ -81,6 +81,7 @@ cc_library(
     deps = [
         "@com_google_absl//absl/time",
         "//ml_metadata/metadata_store:types",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 
@@ -114,6 +115,7 @@ ml_metadata_cc_test(
     deps = [
         "benchmark",
         "@com_google_googletest//:gtest_main",
+        "//ml_metadata/metadata_store:test_util",
         "//ml_metadata/tools/mlmd_bench/proto:mlmd_bench_proto",
     ],
 )

@@ -48,27 +48,31 @@ tensorflow::Status ThreadRunner::Run(Benchmark& benchmark) {
     {
       tensorflow::thread::ThreadPool pool(tensorflow::Env::Default(),
                                           "mlmd_bench", num_threads_);
+      // `total_done` is used for reporting progress along the way.
       int64 total_done = 0;
       int64 thread = 0;
       for (int64 i = 0; i < num_threads_; ++i) {
         pool.Schedule([&]() {
-          // Each thread uses a different MLMD client instance to talk to the
-          // same back-end
+          // Uses a lock to ensure the consistence of concurrent reading and
+          // writing of `thread`.
           lock_.Lock();
           int64 curr_thread = thread;
           thread++;
           lock_.Unlock();
+          // Each thread uses a different MLMD client instance to talk to the
+          // same back-end.
           std::unique_ptr<MetadataStore> store;
           CreateMetadataStore(mlmd_config_, &store);
           int64 start_index = op_per_thread * curr_thread;
           thread_stats_list[curr_thread].Start();
-          // Executes the current workload by the specified index of work item.
+          // Executes the current workload by the specified `work_items_index`.
           int64 work_items_index = start_index;
           while (work_items_index < start_index + op_per_thread) {
-            // Each operation will has a op_stats.
+            // Each operation has a op_stats.
             OpStats op_stats;
             tensorflow::Status status =
                 workload.first->RunOp(work_items_index, store.get(), op_stats);
+            // Handles abort for concurrent writing to the db.
             if (!status.ok()) {
               continue;
             }
