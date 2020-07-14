@@ -1,22 +1,23 @@
 mlmd_config: {
   sqlite: {
-    filename_uri: "mlmd-bench-56247ysggsdfh5y.db"
+    filename_uri: "mlmd-bench-agagaDAGWER.db"
     connection_mode: READWRITE_OPENCREATE
   }
 }
 workload_configs: { 
   fill_types_config: {
-  update: false
-  specification: ARTIFACT_TYPE
-  num_properties: { minimum: 1 maximum: 10 }
+    update: false
+    specification: ARTIFACT_TYPE
+    num_properties: { minimum: 1 maximum: 10 }
   }
   num_operations: 500
 }
 workload_configs: { 
-  fill_types_config: {
-  update: true
-  specification: ARTIFACT_TYPE
-  num_properties: { minimum: 1 maximum: 10 }
+  fill_nodes_config: {
+    update: false
+    specification: ARTIFACT
+    num_properties: { minimum: 1 maximum: 10 }
+    string_value_bytes: { minimum: 1 maximum: 10 }
   }
   num_operations: 1000
 }

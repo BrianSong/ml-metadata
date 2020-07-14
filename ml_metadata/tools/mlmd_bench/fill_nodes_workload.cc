@@ -22,37 +22,45 @@ limitations under the License.
 namespace ml_metadata {
 namespace {
 
-tensorflow::Status GetTypes(const FillNodesConfig& fill_nodes_config,
-                            MetadataStore* store,
-                            GetTypesResponseType& get_response,
-                            int64& num_types) {
+// Defines a Type can be ArtifactType / ExecutionType / ContextType.
+using Type = absl::variant<ArtifactType, ExecutionType, ContextType>;
+
+// Gets all the existing types (the specific types that indicated by
+// `fill_types_config`) inside db and store them into `existing_types`.
+// Returns detailed error if query executions failed.
+tensorflow::Status GetExistingTypes(const FillNodesConfig& fill_nodes_config,
+                                    MetadataStore* store,
+                                    std::vector<Type>& existing_types) {
   switch (fill_nodes_config.specification()) {
     case FillNodesConfig::ARTIFACT: {
-      get_response.emplace<GetArtifactTypesResponse>();
+      GetArtifactTypesResponse get_response;
       TF_RETURN_IF_ERROR(store->GetArtifactTypes(
-          /*request=*/{}, &absl::get<GetArtifactTypesResponse>(get_response)));
-      num_types = absl::get<GetArtifactTypesResponse>(get_response)
-                      .artifact_types_size();
+          /*request=*/{}, &get_response));
+      for (auto& artifact_type : get_response.artifact_types()) {
+        existing_types.push_back(artifact_type);
+      }
       break;
     }
     case FillNodesConfig::EXECUTION: {
-      get_response.emplace<GetExecutionTypesResponse>();
+      GetExecutionTypesResponse get_response;
       TF_RETURN_IF_ERROR(store->GetExecutionTypes(
-          /*request=*/{}, &absl::get<GetExecutionTypesResponse>(get_response)));
-      num_types = absl::get<GetExecutionTypesResponse>(get_response)
-                      .execution_types_size();
+          /*request=*/{}, &get_response));
+      for (auto& execution_type : get_response.execution_types()) {
+        existing_types.push_back(execution_type);
+      }
       break;
     }
     case FillNodesConfig::CONTEXT: {
-      get_response.emplace<GetContextTypesResponse>();
+      GetContextTypesResponse get_response;
       TF_RETURN_IF_ERROR(store->GetContextTypes(
-          /*request=*/{}, &absl::get<GetContextTypesResponse>(get_response)));
-      num_types =
-          absl::get<GetContextTypesResponse>(get_response).context_types_size();
+          /*request=*/{}, &get_response));
+      for (auto& context_type : get_response.context_types()) {
+        existing_types.push_back(context_type);
+      }
       break;
     }
     default:
-      LOG(FATAL) << "Wrong specification for FillNodes!";
+      LOG(FATAL) << "Wrong specification for FillTypes!";
   }
   return tensorflow::Status::OK();
 }
@@ -77,9 +85,26 @@ void InitializePutRequest(const FillNodesConfig& fill_nodes_config,
   }
 }
 
-template <typename Type, typename NodeType>
+template <typename T, typename NT>
 void GenerateNode(const int64 num_properties, const int64 string_value_bytes,
-                  const Type& existed_type, NodeType& node, int64& curr_bytes) {
+                  const T& type, NT& node, int64& curr_bytes) {
+  node.set_type_id(type.id());
+  int64 curr_num_properties = 0;
+  auto it = type.properties().begin();
+  while (curr_num_properties < num_properties &&
+         it != type.properties().end()) {
+    std::string value(string_value_bytes, '*');
+    (*node.mutable_properties())[it->first].set_string_value(value);
+    curr_num_properties++;
+    it++;
+  }
+  while (curr_num_properties < num_properties) {
+    std::string value(string_value_bytes, '*');
+    (*node.mutable_custom_properties())[absl::StrCat("custom_p-",
+                                                     curr_num_properties)]
+        .set_string_value(value);
+    curr_num_properties++;
+  }
 }
 
 }  // namespace
@@ -112,7 +137,6 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
   LOG(INFO) << "Setting up ...";
 
   int64 curr_bytes = 0;
-  int64 num_types = 0;
 
   UniformDistribution num_properties_dist = fill_nodes_config_.num_properties();
   std::uniform_int_distribution<int64> uniform_dist_properties{
@@ -123,14 +147,14 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
   std::uniform_int_distribution<int64> uniform_dist_string{
       string_value_bytes_dist.minimum(), string_value_bytes_dist.maximum()};
 
-  std::uniform_int_distribution<int64> uniform_dist_type_index{0,
-                                                               num_types - 1};
+  std::vector<Type> existing_types;
+  TF_RETURN_IF_ERROR(
+      GetExistingTypes(fill_nodes_config_, store, existing_types));
+
+  std::uniform_int_distribution<int64> uniform_dist_type_index{
+      0, (int64)(existing_types.size() - 1)};
 
   std::minstd_rand0 gen(absl::ToUnixMillis(absl::Now()));
-
-  GetTypesResponseType get_response;
-  TF_RETURN_IF_ERROR(
-      GetTypes(fill_nodes_config_, store, get_response, num_types));
 
   for (int64 i = 0; i < num_operations_; ++i) {
     curr_bytes = 0;
@@ -143,8 +167,7 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
       case FillNodesConfig::ARTIFACT: {
         GenerateNode<ArtifactType, Artifact>(
             num_properties, string_value_bytes,
-            absl::get<GetArtifactTypesResponse>(get_response)
-                .artifact_types()[type_index],
+            absl::get<ArtifactType>(existing_types[type_index]),
             *(absl::get<PutArtifactsRequest>(put_request).add_artifacts()),
             curr_bytes);
         break;
@@ -152,8 +175,7 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
       case FillNodesConfig::EXECUTION: {
         GenerateNode<ExecutionType, Execution>(
             num_properties, string_value_bytes,
-            absl::get<GetExecutionTypesResponse>(get_response)
-                .execution_types()[type_index],
+            absl::get<ExecutionType>(existing_types[type_index]),
             *(absl::get<PutExecutionsRequest>(put_request).add_executions()),
             curr_bytes);
         break;
@@ -161,8 +183,7 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
       case FillNodesConfig::CONTEXT: {
         GenerateNode<ContextType, Context>(
             num_properties, string_value_bytes,
-            absl::get<GetContextTypesResponse>(get_response)
-                .context_types()[type_index],
+            absl::get<ContextType>(existing_types[type_index]),
             *(absl::get<PutContextsRequest>(put_request).add_contexts()),
             curr_bytes);
         break;
@@ -170,7 +191,9 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
       default:
         LOG(FATAL) << "Wrong specification for FillNodes!";
     }
+    work_items_.emplace_back(put_request, curr_bytes);
   }
+  return tensorflow::Status::OK();
 }
 
 // Executions of work items.

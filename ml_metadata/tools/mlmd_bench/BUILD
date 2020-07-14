@@ -101,6 +101,7 @@ cc_library(
     srcs = ["benchmark.cc"],
     hdrs = ["benchmark.h"],
     deps = [
+        ":fill_nodes_workload",
         ":fill_types_workload",
         ":workload",
         "//ml_metadata/metadata_store:types",

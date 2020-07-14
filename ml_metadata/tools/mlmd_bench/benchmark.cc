@@ -17,6 +17,7 @@ limitations under the License.
 #include <vector>
 
 #include "ml_metadata/metadata_store/types.h"
+#include "ml_metadata/tools/mlmd_bench/fill_nodes_workload.h"
 #include "ml_metadata/tools/mlmd_bench/fill_types_workload.h"
 #include "ml_metadata/tools/mlmd_bench/proto/mlmd_bench.pb.h"
 #include "ml_metadata/tools/mlmd_bench/workload.h"
@@ -43,6 +44,11 @@ void Benchmark::CreateWorkload(const WorkloadConfig& workload_config) {
     std::unique_ptr<FillTypes> fill_types(new FillTypes(
         workload_config.fill_types_config(), workload_config.num_operations()));
     workloads_.push_back(std::make_pair(std::move(fill_types),
+                                        workload_config.num_operations()));
+  } else if (workload_config.has_fill_nodes_config()) {
+    std::unique_ptr<FillNodes> fill_nodes(new FillNodes(
+        workload_config.fill_nodes_config(), workload_config.num_operations()));
+    workloads_.push_back(std::make_pair(std::move(fill_nodes),
                                         workload_config.num_operations()));
   }
 }
