@@ -13,6 +13,14 @@ workload_configs: {
   num_operations: 500
 }
 workload_configs: { 
+  fill_types_config: {
+    update: true
+    specification: ARTIFACT_TYPE
+    num_properties: { minimum: 1 maximum: 10 }
+  }
+  num_operations: 1000
+}
+workload_configs: { 
   fill_nodes_config: {
     update: false
     specification: ARTIFACT

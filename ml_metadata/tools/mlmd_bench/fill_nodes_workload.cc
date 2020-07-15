@@ -25,6 +25,10 @@ namespace {
 // Defines a Type can be ArtifactType / ExecutionType / ContextType.
 using Type = absl::variant<ArtifactType, ExecutionType, ContextType>;
 
+using GetTypesResponseType =
+    absl::variant<GetArtifactTypesResponse, GetExecutionTypesResponse,
+                  GetContextTypesResponse>;
+
 // Gets all the existing types (the specific types that indicated by
 // `fill_types_config`) inside db and store them into `existing_types`.
 // Returns detailed error if query executions failed.
@@ -65,24 +69,11 @@ tensorflow::Status GetExistingTypes(const FillNodesConfig& fill_nodes_config,
   return tensorflow::Status::OK();
 }
 
-void InitializePutRequest(const FillNodesConfig& fill_nodes_config,
+// Template function that initializes the properties of the `put_request`.
+template <typename T>
+void InitializePutRequest(const FillNodesConfig& fill_types_config,
                           FillNodesWorkItemType& put_request) {
-  switch (fill_nodes_config.specification()) {
-    case FillNodesConfig::ARTIFACT: {
-      put_request.emplace<PutArtifactsRequest>();
-      break;
-    }
-    case FillNodesConfig::EXECUTION: {
-      put_request.emplace<PutExecutionsRequest>();
-      break;
-    }
-    case FillNodesConfig::CONTEXT: {
-      put_request.emplace<PutContextsRequest>();
-      break;
-    }
-    default:
-      LOG(FATAL) << "Wrong specification for FillNodes!";
-  }
+  put_request.emplace<T>();
 }
 
 template <typename T, typename NT>
@@ -159,12 +150,13 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
   for (int64 i = 0; i < num_operations_; ++i) {
     curr_bytes = 0;
     FillNodesWorkItemType put_request;
-    InitializePutRequest(fill_nodes_config_, put_request);
     const int64 num_properties = uniform_dist_properties(gen);
     const int64 string_value_bytes = uniform_dist_string(gen);
     const int64 type_index = uniform_dist_type_index(gen);
     switch (fill_nodes_config_.specification()) {
       case FillNodesConfig::ARTIFACT: {
+        InitializePutRequest<PutArtifactsRequest>(fill_nodes_config_,
+                                                  put_request);
         GenerateNode<ArtifactType, Artifact>(
             num_properties, string_value_bytes,
             absl::get<ArtifactType>(existing_types[type_index]),
@@ -173,6 +165,8 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
         break;
       }
       case FillNodesConfig::EXECUTION: {
+        InitializePutRequest<PutExecutionsRequest>(fill_nodes_config_,
+                                                   put_request);
         GenerateNode<ExecutionType, Execution>(
             num_properties, string_value_bytes,
             absl::get<ExecutionType>(existing_types[type_index]),
@@ -181,6 +175,8 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
         break;
       }
       case FillNodesConfig::CONTEXT: {
+        InitializePutRequest<PutContextsRequest>(fill_nodes_config_,
+                                                 put_request);
         GenerateNode<ContextType, Context>(
             num_properties, string_value_bytes,
             absl::get<ContextType>(existing_types[type_index]),

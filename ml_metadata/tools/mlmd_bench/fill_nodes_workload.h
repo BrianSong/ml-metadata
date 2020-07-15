@@ -29,10 +29,6 @@ using FillNodesWorkItemType =
     absl::variant<PutArtifactsRequest, PutExecutionsRequest,
                   PutContextsRequest>;
 
-using GetTypesResponseType =
-    absl::variant<GetArtifactTypesResponse, GetExecutionTypesResponse,
-                  GetContextTypesResponse>;
-
 class FillNodes : public Workload<FillNodesWorkItemType> {
  public:
   FillNodes(const FillNodesConfig& fill_nodes_config, int64 num_operations);
