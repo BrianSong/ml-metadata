@@ -25,10 +25,6 @@ namespace {
 // Defines a Type can be ArtifactType / ExecutionType / ContextType.
 using Type = absl::variant<ArtifactType, ExecutionType, ContextType>;
 
-using GetTypesResponseType =
-    absl::variant<GetArtifactTypesResponse, GetExecutionTypesResponse,
-                  GetContextTypesResponse>;
-
 // Gets all the existing types (the specific types that indicated by
 // `fill_types_config`) inside db and store them into `existing_types`.
 // Returns detailed error if query executions failed.
