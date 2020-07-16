@@ -15,6 +15,7 @@ limitations under the License.
 #include "ml_metadata/tools/mlmd_bench/fill_types_workload.h"
 
 #include <random>
+#include <vector>
 
 #include "absl/strings/str_cat.h"
 #include "absl/time/clock.h"
@@ -24,6 +25,7 @@ limitations under the License.
 #include "ml_metadata/proto/metadata_store.pb.h"
 #include "ml_metadata/proto/metadata_store_service.pb.h"
 #include "ml_metadata/tools/mlmd_bench/proto/mlmd_bench.pb.h"
+#include "ml_metadata/tools/mlmd_bench/util.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/logging.h"

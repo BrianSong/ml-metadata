@@ -15,6 +15,8 @@ limitations under the License.
 #ifndef ML_METADATA_TOOLS_MLMD_BENCH_WORKLOAD_H
 #define ML_METADATA_TOOLS_MLMD_BENCH_WORKLOAD_H
 
+#include <vector>
+
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "ml_metadata/metadata_store/metadata_store.h"

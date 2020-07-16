@@ -42,6 +42,7 @@ cc_library(
     hdrs = ["fill_types_workload.h"],
     deps = [
         ":workload",
+        ":util",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:variant",
@@ -60,6 +61,7 @@ ml_metadata_cc_test(
     srcs = ["fill_types_workload_test.cc"],
     deps = [
         ":fill_types_workload",
+        ":util",
         "@com_google_absl//absl/memory",
         #"@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
@@ -156,6 +158,19 @@ ml_metadata_cc_test(
         "//ml_metadata/tools/mlmd_bench/proto:mlmd_bench_proto",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",
+    ],
+)
+
+cc_library(
+    name = "util",
+    hdrs = ["util.h"],
+    deps = [
+        "@com_google_absl//absl/types:variant",
+        "//ml_metadata/metadata_store",
+        "//ml_metadata/proto:metadata_store_proto",
+        "//ml_metadata/proto:metadata_store_service_proto",
+        "//ml_metadata/tools/mlmd_bench/proto:mlmd_bench_proto",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 
