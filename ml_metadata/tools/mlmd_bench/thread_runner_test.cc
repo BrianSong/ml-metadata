@@ -33,11 +33,7 @@ TEST(ThreadRunnerTest, RunInSingleThreadTest) {
           R"(
             mlmd_config: {
               sqlite: {
-<<<<<<< HEAD
-                filename_uri: "mlmd-bench-test.db"
-=======
                 filename_uri: "mlmd-bench-test1.db"
->>>>>>> develop
                 connection_mode: READWRITE_OPENCREATE
               }
             }

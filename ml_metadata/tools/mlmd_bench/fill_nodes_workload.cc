@@ -15,55 +15,21 @@ limitations under the License.
 #include "ml_metadata/tools/mlmd_bench/fill_nodes_workload.h"
 
 #include <random>
+#include <vector>
 
+#include "absl/strings/str_cat.h"
 #include "ml_metadata/metadata_store/metadata_store.h"
+#include "ml_metadata/metadata_store/types.h"
+#include "ml_metadata/proto/metadata_store.pb.h"
+#include "ml_metadata/proto/metadata_store_service.pb.h"
+#include "ml_metadata/tools/mlmd_bench/proto/mlmd_bench.pb.h"
+#include "ml_metadata/tools/mlmd_bench/util.h"
+#include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/logging.h"
 
 namespace ml_metadata {
 namespace {
-
-// Defines a Type can be ArtifactType / ExecutionType / ContextType.
-using Type = absl::variant<ArtifactType, ExecutionType, ContextType>;
-
-// Gets all the existing types (the specific types that indicated by
-// `fill_types_config`) inside db and store them into `existing_types`.
-// Returns detailed error if query executions failed.
-tensorflow::Status GetExistingTypes(const FillNodesConfig& fill_nodes_config,
-                                    MetadataStore* store,
-                                    std::vector<Type>& existing_types) {
-  switch (fill_nodes_config.specification()) {
-    case FillNodesConfig::ARTIFACT: {
-      GetArtifactTypesResponse get_response;
-      TF_RETURN_IF_ERROR(store->GetArtifactTypes(
-          /*request=*/{}, &get_response));
-      for (auto& artifact_type : get_response.artifact_types()) {
-        existing_types.push_back(artifact_type);
-      }
-      break;
-    }
-    case FillNodesConfig::EXECUTION: {
-      GetExecutionTypesResponse get_response;
-      TF_RETURN_IF_ERROR(store->GetExecutionTypes(
-          /*request=*/{}, &get_response));
-      for (auto& execution_type : get_response.execution_types()) {
-        existing_types.push_back(execution_type);
-      }
-      break;
-    }
-    case FillNodesConfig::CONTEXT: {
-      GetContextTypesResponse get_response;
-      TF_RETURN_IF_ERROR(store->GetContextTypes(
-          /*request=*/{}, &get_response));
-      for (auto& context_type : get_response.context_types()) {
-        existing_types.push_back(context_type);
-      }
-      break;
-    }
-    default:
-      LOG(FATAL) << "Wrong specification for FillTypes!";
-  }
-  return tensorflow::Status::OK();
-}
 
 // Template function that initializes the properties of the `put_request`.
 template <typename T>
@@ -135,8 +101,8 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
       string_value_bytes_dist.minimum(), string_value_bytes_dist.maximum()};
 
   std::vector<Type> existing_types;
-  TF_RETURN_IF_ERROR(
-      GetExistingTypes(fill_nodes_config_, store, existing_types));
+  TF_RETURN_IF_ERROR(GetExistingTypes(fill_nodes_config_.specification(), store,
+                                      existing_types));
 
   std::uniform_int_distribution<int64> uniform_dist_type_index{
       0, (int64)(existing_types.size() - 1)};
