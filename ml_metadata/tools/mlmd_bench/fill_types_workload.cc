@@ -141,7 +141,7 @@ tensorflow::Status GenerateType(const FillTypesConfig& fill_types_config,
     // Insert cases.
     SetInsertType<T>(type_name, num_properties, type);
   }
-  GetTransferredBytes(type, curr_bytes);
+  TF_RETURN_IF_ERROR(GetTransferredBytes<T>(type, curr_bytes));
   return tensorflow::Status::OK();
 }
 

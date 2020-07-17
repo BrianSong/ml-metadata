@@ -33,16 +33,69 @@ namespace {
 
 // Template function that initializes the properties of the `put_request`.
 template <typename T>
-void InitializePutRequest(const FillNodesConfig& fill_types_config,
+void InitializePutRequest(const FillNodesConfig& fill_nodes_config,
                           FillNodesWorkItemType& put_request) {
   put_request.emplace<T>();
 }
 
+// Gets the transferred bytes for certain `properties` and increases
+// `curr_bytes` accordingly.
+tensorflow::Status GetTransferredBytesForNodeProperties(
+    const google::protobuf::Map<std::string, Value>& properties,
+    int64& curr_bytes) {
+  for (auto& pair : properties) {
+    // Includes the bytes for properties' name size.
+    curr_bytes += pair.first.size();
+    // Includes the bytes for properties' value size.
+    switch (pair.second.value_case()) {
+      case 1: {
+        // int64 takes 8 bytes.
+        curr_bytes += 8;
+        break;
+      }
+      case 2: {
+        // double takes 8 bytes.
+        curr_bytes += 8;
+        break;
+      }
+      case 3: {
+        // string cases.
+        curr_bytes += pair.second.string_value().size();
+        break;
+      }
+      default:
+        return tensorflow::errors::InvalidArgument("Invalid ValueType!");
+    }
+  }
+  return tensorflow::Status::OK();
+}
+
+// Calculates the transferred bytes for each node that will be inserted later.
+template <typename NT>
+tensorflow::Status GetTransferredBytes(const NT& node, int64& curr_bytes) {
+  TF_RETURN_IF_ERROR(
+      GetTransferredBytesForNodeProperties(node.properties(), curr_bytes));
+  TF_RETURN_IF_ERROR(GetTransferredBytesForNodeProperties(
+      node.custom_properties(), curr_bytes));
+  return tensorflow::Status::OK();
+}
+
+// Generates insert node.
+// For insert cases, it takes `node_name`, `type`, `number_properties` and
+// `string_value_bytes` to set the insert node. The node's type will be `type`
+// and its properties will be generated w.r.t. `num_properties` and
+// `string_value_bytes`. Returns detailed error if query executions failed.
 template <typename T, typename NT>
-void GenerateNode(const int64 num_properties, const int64 string_value_bytes,
-                  const T& type, NT& node, int64& curr_bytes) {
+tensorflow::Status GenerateNode(const std::string& node_name,
+                                const int64 num_properties,
+                                const int64 string_value_bytes, const T& type,
+                                NT& node, int64& curr_bytes) {
+  // Insert nodes cases.
+  node.set_name(node_name);
   node.set_type_id(type.id());
   int64 curr_num_properties = 0;
+  // Loops over the types properties and use it to generate the node's
+  // properties accordingly.
   auto it = type.properties().begin();
   while (curr_num_properties < num_properties &&
          it != type.properties().end()) {
@@ -51,6 +104,8 @@ void GenerateNode(const int64 num_properties, const int64 string_value_bytes,
     curr_num_properties++;
     it++;
   }
+  // If the node's number of properties is greater than the type, use custom
+  // properties instead.
   while (curr_num_properties < num_properties) {
     std::string value(string_value_bytes, '*');
     (*node.mutable_custom_properties())[absl::StrCat("custom_p-",
@@ -58,6 +113,8 @@ void GenerateNode(const int64 num_properties, const int64 string_value_bytes,
         .set_string_value(value);
     curr_num_properties++;
   }
+  TF_RETURN_IF_ERROR(GetTransferredBytes<NT>(node, curr_bytes));
+  return tensorflow::Status::OK();
 }
 
 }  // namespace
@@ -91,6 +148,8 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
 
   int64 curr_bytes = 0;
 
+  // Sets the uniform distributions for generating the `num_properties` and
+  // `string_value_bytes`.
   UniformDistribution num_properties_dist = fill_nodes_config_.num_properties();
   std::uniform_int_distribution<int64> uniform_dist_properties{
       num_properties_dist.minimum(), num_properties_dist.maximum()};
@@ -100,10 +159,12 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
   std::uniform_int_distribution<int64> uniform_dist_string{
       string_value_bytes_dist.minimum(), string_value_bytes_dist.maximum()};
 
+  // Gets all the specific types in db to choose from when generating nodes.
   std::vector<Type> existing_types;
   TF_RETURN_IF_ERROR(GetExistingTypes(fill_nodes_config_.specification(), store,
                                       existing_types));
 
+  // Sets the uniform distributions for selecting a registered type randomly.
   std::uniform_int_distribution<int64> uniform_dist_type_index{
       0, (int64)(existing_types.size() - 1)};
 
@@ -112,6 +173,8 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
   for (int64 i = 0; i < num_operations_; ++i) {
     curr_bytes = 0;
     FillNodesWorkItemType put_request;
+    const std::string node_name =
+        absl::StrCat("node_", absl::FormatTime(absl::Now()), "_", i);
     const int64 num_properties = uniform_dist_properties(gen);
     const int64 string_value_bytes = uniform_dist_string(gen);
     const int64 type_index = uniform_dist_type_index(gen);
@@ -119,31 +182,31 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
       case FillNodesConfig::ARTIFACT: {
         InitializePutRequest<PutArtifactsRequest>(fill_nodes_config_,
                                                   put_request);
-        GenerateNode<ArtifactType, Artifact>(
-            num_properties, string_value_bytes,
+        TF_RETURN_IF_ERROR(GenerateNode<ArtifactType, Artifact>(
+            node_name, num_properties, string_value_bytes,
             absl::get<ArtifactType>(existing_types[type_index]),
             *(absl::get<PutArtifactsRequest>(put_request).add_artifacts()),
-            curr_bytes);
+            curr_bytes));
         break;
       }
       case FillNodesConfig::EXECUTION: {
         InitializePutRequest<PutExecutionsRequest>(fill_nodes_config_,
                                                    put_request);
-        GenerateNode<ExecutionType, Execution>(
-            num_properties, string_value_bytes,
+        TF_RETURN_IF_ERROR(GenerateNode<ExecutionType, Execution>(
+            node_name, num_properties, string_value_bytes,
             absl::get<ExecutionType>(existing_types[type_index]),
             *(absl::get<PutExecutionsRequest>(put_request).add_executions()),
-            curr_bytes);
+            curr_bytes));
         break;
       }
       case FillNodesConfig::CONTEXT: {
         InitializePutRequest<PutContextsRequest>(fill_nodes_config_,
                                                  put_request);
-        GenerateNode<ContextType, Context>(
-            num_properties, string_value_bytes,
+        TF_RETURN_IF_ERROR(GenerateNode<ContextType, Context>(
+            node_name, num_properties, string_value_bytes,
             absl::get<ContextType>(existing_types[type_index]),
             *(absl::get<PutContextsRequest>(put_request).add_contexts()),
-            curr_bytes);
+            curr_bytes));
         break;
       }
       default:

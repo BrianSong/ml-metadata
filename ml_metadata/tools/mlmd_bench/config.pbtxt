@@ -1,6 +1,6 @@
 mlmd_config: {
   sqlite: {
-    filename_uri: "mlmd-bench-agagaDAGWER.db"
+    filename_uri: "mlmd-bench-57345afhgfagfatyr.db"
     connection_mode: READWRITE_OPENCREATE
   }
 }

@@ -60,37 +60,6 @@ std::vector<WorkloadConfig> EnumerateConfigs(const bool is_update) {
   return config_vector;
 }
 
-// Inserts some types into db to set it up in different start status in
-// testing.
-tensorflow::Status InsertTypesInDb(const int64 num_artifact_types,
-                                   const int64 num_execution_types,
-                                   const int64 num_context_types,
-                                   MetadataStore* store) {
-  PutTypesRequest put_request;
-  PutTypesResponse put_response;
-
-  for (int64 i = 0; i < num_artifact_types; i++) {
-    ArtifactType* curr_type = put_request.add_artifact_types();
-    curr_type->set_name(absl::StrCat("pre_insert_artifact_type-", i));
-    (*curr_type->mutable_properties())["property"] = STRING;
-  }
-
-  for (int64 i = 0; i < num_execution_types; i++) {
-    ExecutionType* curr_type = put_request.add_execution_types();
-    curr_type->set_name(absl::StrCat("pre_insert_execution_type-", i));
-    (*curr_type->mutable_properties())["property"] = STRING;
-  }
-
-  for (int64 i = 0; i < num_context_types; i++) {
-    ContextType* curr_type = put_request.add_context_types();
-    curr_type->set_name(absl::StrCat("pre_insert_context_type-", i));
-    (*curr_type->mutable_properties())["property"] = STRING;
-  }
-
-  TF_RETURN_IF_ERROR(store->PutTypes(put_request, &put_response));
-  return tensorflow::Status::OK();
-}
-
 // Executes the given FillTypes workloads.
 tensorflow::Status ExecuteWorkload(MetadataStore* store,
                                    std::unique_ptr<FillTypes>& workload) {
