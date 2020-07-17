@@ -108,6 +108,7 @@ cc_library(
         ":workload",
         "//ml_metadata/metadata_store:types",
         "//ml_metadata/tools/mlmd_bench/proto:mlmd_bench_proto",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 

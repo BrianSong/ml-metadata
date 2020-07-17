@@ -4,7 +4,11 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
+<<<<<<< HEAD
   https://www.apache.org/licenses/LICENSE-2.0
+=======
+    https://www.apache.org/licenses/LICENSE-2.0
+>>>>>>> develop
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,6 +25,7 @@ limitations under the License.
 #include "ml_metadata/tools/mlmd_bench/fill_types_workload.h"
 #include "ml_metadata/tools/mlmd_bench/proto/mlmd_bench.pb.h"
 #include "ml_metadata/tools/mlmd_bench/workload.h"
+#include "tensorflow/core/platform/logging.h"
 
 namespace ml_metadata {
 
@@ -50,6 +55,8 @@ void Benchmark::CreateWorkload(const WorkloadConfig& workload_config) {
         workload_config.fill_nodes_config(), workload_config.num_operations()));
     workloads_.push_back(std::make_pair(std::move(fill_nodes),
                                         workload_config.num_operations()));
+  } else {
+    LOG(FATAL) << "Cannot find corresponding workload!";
   }
 }
 

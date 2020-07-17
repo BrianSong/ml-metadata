@@ -36,7 +36,7 @@ TEST(BenchmarkTest, CreatWorkloadTest) {
             }
           )");
   Benchmark benchmark(mlmd_bench_config);
-  // Checks that indeed one workload has been created according to
+  // Checks that indeed one workload has been created according to the
   // `workload_configs`.
   EXPECT_STREQ(benchmark.workloads()[0].first->GetName().c_str(),
                "fill_artifact_type");

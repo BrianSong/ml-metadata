@@ -23,14 +23,14 @@ limitations under the License.
 
 namespace ml_metadata {
 
-// The ThreadRunner class is the execution component of the mlmd_bench
+// The ThreadRunner class is the execution component of the `mlmd_bench`
 // It takes the benchmark and runs the workloads.
 class ThreadRunner {
  public:
   ThreadRunner(const MLMDBenchConfig& mlmd_bench_config);
   ~ThreadRunner() = default;
 
-  // Execution unit of mlmd_bench. Returns detailed error if query executions
+  // Execution unit of `mlmd_bench`. Returns detailed error if query executions
   // failed.
   tensorflow::Status Run(Benchmark& benchmark);
 

@@ -36,7 +36,7 @@ class Benchmark {
   std::vector<std::pair<std::unique_ptr<WorkloadBase>, int64>>& workloads();
 
  private:
-  // A list of executable workloads and the according number of operations.
+  // A list of executable workloads and their according number of operations.
   std::vector<std::pair<std::unique_ptr<WorkloadBase>, int64>> workloads_;
 };
 

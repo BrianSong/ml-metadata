@@ -24,7 +24,7 @@ Stats::Stats() : micro_seconds_(0), done_(0), next_report_(100), bytes_(0) {}
 
 void Stats::Start() { start_ = absl::Now(); }
 
-void Stats::Update(const OpStats& op_stats, const int64& total_done) {
+void Stats::Update(const OpStats& op_stats, int64& total_done) {
   bytes_ += op_stats.transferred_bytes;
   micro_seconds_ += op_stats.elapsed_time / absl::Microseconds(1);
   done_++;

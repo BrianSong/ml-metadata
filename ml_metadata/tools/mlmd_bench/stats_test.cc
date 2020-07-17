@@ -26,24 +26,28 @@ namespace {
 // Tests the Update() of Stats class.
 TEST(StatsTest, UpdateTest) {
   srand(time(NULL));
+
   Stats stats;
   stats.Start();
-  // Prepares the op_stats for current stats.
+
+  // Prepares the list of `op_stats` to update `stats`.
   std::vector<absl::Duration> op_stats_time;
   std::vector<int> op_stats_bytes;
   for (int i = 0; i < 10000; ++i) {
     op_stats_time.push_back(absl::Microseconds(rand() % 99999));
     op_stats_bytes.push_back(rand() % 99999);
   }
-  // Updates the current stats with the list of op_stats.
+
+  // Updates `stats` with the list of `op_stats`.
   for (int64 i = 0; i < 10000; ++i) {
     OpStats curr_op_stats{op_stats_time[i], op_stats_bytes[i]};
     stats.Update(curr_op_stats, i);
   }
+
+  // Since the `done_`, `bytes_` and `micro_seconds_` are accumulated by each
+  // update, the finial `done_`, `bytes_` and `micro_seconds_` of `stats` should
+  // be the sum of the list of `op_stats`.
   EXPECT_EQ(stats.done(), 10000);
-  // Since the bytes_ and micro_seconds_ are accumulated by each update, the
-  // finial value of the current stats should be the sum of the list of
-  // op_stats.
   EXPECT_EQ(stats.micro_seconds(),
             std::accumulate(op_stats_time.begin(), op_stats_time.end(),
                             absl::Microseconds(0)) /
@@ -65,7 +69,7 @@ TEST(StatsTest, MergeTest) {
   absl::SleepFor(sleep_time);
   Stats stats3;
   stats3.Start();
-  // Since stats1 starts the earliest among the three.
+  // Since `stats1` starts the earliest among the three.
   absl::Time ealiest_start_time = stats1.start();
 
   std::vector<absl::Duration> op_stats_time;
@@ -75,7 +79,7 @@ TEST(StatsTest, MergeTest) {
     op_stats_bytes.push_back(rand() % 99999);
   }
 
-  // Updates the three stats with the prepared list of op_stats.
+  // Updates the three stats with the prepared list of `op_stats`.
   for (int64 i = 0; i < 10000; ++i) {
     OpStats curr_op_stats{op_stats_time[i], op_stats_bytes[i]};
     if (i <= 3333) {
@@ -93,15 +97,15 @@ TEST(StatsTest, MergeTest) {
   absl::SleepFor(sleep_time);
   stats3.Stop();
   absl::SleepFor(sleep_time);
-  // Since the stats3 stops the latest among the three.
+  // Since the `stats3` stops the latest among the three.
   absl::Time latest_end_time = stats3.finish();
 
   stats1.Merge(stats2);
   stats1.Merge(stats3);
 
-  // Since the Merge() accumulates the done_, bytes_ and micro_seconds_ of each
-  // merged stats, the final stats's done_, bytes_ and micro_seconds_ should be
-  // the sum of the three stats.
+  // Since the Merge() accumulates the `done_`, `bytes_` and `micro_seconds_` of
+  // each merged stats, the final stats's `done_`, `bytes_` and `micro_seconds_`
+  // should be the sum of the three stats.
   EXPECT_EQ(stats1.done(), 10000);
   EXPECT_EQ(stats1.micro_seconds(),
             std::accumulate(op_stats_time.begin(), op_stats_time.end(),
@@ -109,6 +113,7 @@ TEST(StatsTest, MergeTest) {
                 absl::Microseconds(1));
   EXPECT_EQ(stats1.bytes(),
             std::accumulate(op_stats_bytes.begin(), op_stats_bytes.end(), 0));
+
   // In Merge(), we takes the earliest start time and latest end time as
   // the start and end time of the merged stats.
   EXPECT_EQ(stats1.start(), ealiest_start_time);
