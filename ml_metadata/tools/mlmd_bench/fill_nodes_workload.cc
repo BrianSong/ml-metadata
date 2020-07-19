@@ -18,6 +18,7 @@ limitations under the License.
 #include <vector>
 
 #include "absl/strings/str_cat.h"
+#include "absl/time/clock.h"
 #include "ml_metadata/metadata_store/metadata_store.h"
 #include "ml_metadata/metadata_store/types.h"
 #include "ml_metadata/proto/metadata_store.pb.h"
@@ -170,6 +171,7 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
 
   std::minstd_rand0 gen(absl::ToUnixMillis(absl::Now()));
 
+  // TODO(briansong) Adds update support.
   for (int64 i = 0; i < num_operations_; ++i) {
     curr_bytes = 0;
     FillNodesWorkItemType put_request;

@@ -22,6 +22,37 @@ licenses(["notice"])  # Apache 2.0
 package(default_visibility = ["//visibility:private"])
 
 cc_library(
+    name = "fill_context_edges_workload",
+    srcs = ["fill_context_edges_workload.cc"],
+    hdrs = ["fill_context_edges_workload.h"],
+    deps = [
+        ":workload",
+        ":util",
+        "//ml_metadata/metadata_store:metadata_store",
+        "//ml_metadata/metadata_store:types",
+        "//ml_metadata/proto:metadata_store_service_proto",
+        "//ml_metadata/tools/mlmd_bench/proto:mlmd_bench_proto",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+ml_metadata_cc_test(
+    name = "fill_context_edges_workload_test",
+    size = "small",
+    srcs = ["fill_context_edges_workload_test.cc"],
+    deps = [
+        ":fill_context_edges_workload",
+        ":util",
+        #"@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "//ml_metadata/metadata_store:metadata_store",
+        "//ml_metadata/metadata_store:metadata_store_factory",
+        "//ml_metadata/tools/mlmd_bench/proto:mlmd_bench_proto",
+        "@org_tensorflow//tensorflow/core:test",
+    ],
+)
+
+cc_library(
     name = "fill_nodes_workload",
     srcs = ["fill_nodes_workload.cc"],
     hdrs = ["fill_nodes_workload.h"],
@@ -130,6 +161,7 @@ cc_library(
     deps = [
         ":fill_nodes_workload",
         ":fill_types_workload",
+        ":fill_context_edges_workload",
         ":workload",
         "//ml_metadata/metadata_store:types",
         "//ml_metadata/tools/mlmd_bench/proto:mlmd_bench_proto",
@@ -192,6 +224,7 @@ cc_library(
     hdrs = ["util.h"],
     srcs = ["util.cc"],
     deps = [
+        "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:variant",
         "//ml_metadata/metadata_store:metadata_store",
         "//ml_metadata/proto:metadata_store_proto",

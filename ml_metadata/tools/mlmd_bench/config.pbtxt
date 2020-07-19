@@ -7,7 +7,7 @@ mlmd_config: {
 workload_configs: { 
   fill_types_config: {
     update: false
-    specification: ARTIFACT_TYPE
+    specification: EXECUTION_TYPE
     num_properties: { minimum: 1 maximum: 10 }
   }
   num_operations: 500
@@ -15,7 +15,7 @@ workload_configs: {
 workload_configs: { 
   fill_types_config: {
     update: true
-    specification: ARTIFACT_TYPE
+    specification: EXECUTION_TYPE
     num_properties: { minimum: 1 maximum: 10 }
   }
   num_operations: 1000
@@ -23,7 +23,7 @@ workload_configs: {
 workload_configs: { 
   fill_nodes_config: {
     update: false
-    specification: ARTIFACT
+    specification: EXECUTION
     num_properties: { minimum: 1 maximum: 10 }
     string_value_bytes: { minimum: 1 maximum: 10 }
   }

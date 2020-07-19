@@ -40,6 +40,13 @@ tensorflow::Status InsertTypesInDb(int64 num_artifact_types,
                                    int64 num_context_types,
                                    MetadataStore* store);
 
+// Inserts some nodes into db to set it up in different start status in
+// testing.
+tensorflow::Status InsertNodesInDb(int64 num_artifact_nodes,
+                                   int64 num_execution_nodes,
+                                   int64 num_context_nodes,
+                                   MetadataStore* store);
+
 // Gets all the existing types (the specific types that indicated by
 // `specification`) inside db and store them into `existing_types`.
 // Returns detailed error if query executions failed.

@@ -4,11 +4,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-<<<<<<< HEAD
-  https://www.apache.org/licenses/LICENSE-2.0
-=======
     https://www.apache.org/licenses/LICENSE-2.0
->>>>>>> develop
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,6 +17,7 @@ limitations under the License.
 #include <vector>
 
 #include "ml_metadata/metadata_store/types.h"
+#include "ml_metadata/tools/mlmd_bench/fill_context_edges_workload.h"
 #include "ml_metadata/tools/mlmd_bench/fill_nodes_workload.h"
 #include "ml_metadata/tools/mlmd_bench/fill_types_workload.h"
 #include "ml_metadata/tools/mlmd_bench/proto/mlmd_bench.pb.h"
@@ -54,6 +51,12 @@ void Benchmark::CreateWorkload(const WorkloadConfig& workload_config) {
     std::unique_ptr<FillNodes> fill_nodes(new FillNodes(
         workload_config.fill_nodes_config(), workload_config.num_operations()));
     workloads_.push_back(std::make_pair(std::move(fill_nodes),
+                                        workload_config.num_operations()));
+  } else if (workload_config.has_fill_context_edges_config()) {
+    std::unique_ptr<FillContextEdges> fill_context_edges(
+        new FillContextEdges(workload_config.fill_context_edges_config(),
+                             workload_config.num_operations()));
+    workloads_.push_back(std::make_pair(std::move(fill_context_edges),
                                         workload_config.num_operations()));
   } else {
     LOG(FATAL) << "Cannot find corresponding workload!";
