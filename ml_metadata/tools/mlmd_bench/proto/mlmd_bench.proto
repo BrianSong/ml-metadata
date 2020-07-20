@@ -73,12 +73,24 @@ message FillNodesConfig {
 // Create context edges: Attributions / Associations
 message FillContextEdgesConfig {
   enum Specification {
-      Attribution = 0;
-      Association = 1;
+      ATTRIBUTION = 0;
+      ASSOCIATION = 1;
   }
   // Indicate which type of context's edges to be filled
   optional Specification specification = 1;
 } 
+
+// Create input / output events.
+message FillEventsConfig {
+    enum Specification {
+        INPUT = 0;
+        OUTPUT = 1;
+    }
+    // Indicate the type (input / output) of the event
+    optional Specification specification = 1;
+}
+
+
 
 // The mlmd_bench workload config.
 message WorkloadConfig {
@@ -86,9 +98,10 @@ message WorkloadConfig {
     FillTypesConfig fill_types_config = 1;
     FillNodesConfig fill_nodes_config = 2;
     FillContextEdgesConfig fill_context_edges_config = 3;
+    FillEventsConfig fill_events_config = 4;
   }
   // The number of operations to be run in parallel.
-  optional int64 num_operations = 4;
+  optional int64 num_operations = 5;
 }
 
 // The configuration for the multi-threaded environment which executes the

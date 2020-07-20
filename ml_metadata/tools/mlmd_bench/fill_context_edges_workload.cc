@@ -33,12 +33,12 @@ tensorflow::Status GetExistingNonContextNodes(
     const FillContextEdgesConfig& fill_context_edges_config,
     MetadataStore* store, std::vector<NodeType>& existing_non_context_nodes) {
   switch (fill_context_edges_config.specification()) {
-    case FillContextEdgesConfig::Attribution: {
+    case FillContextEdgesConfig::ATTRIBUTION: {
       TF_RETURN_IF_ERROR(GetExistingNodes(/*specification=*/0, store,
                                           existing_non_context_nodes));
       break;
     }
-    case FillContextEdgesConfig::Association: {
+    case FillContextEdgesConfig::ASSOCIATION: {
       TF_RETURN_IF_ERROR(GetExistingNodes(/*specification=*/1, store,
                                           existing_non_context_nodes));
       break;
@@ -83,11 +83,11 @@ FillContextEdges::FillContextEdges(
     : fill_context_edges_config_(fill_context_edges_config),
       num_operations_(num_operations) {
   switch (fill_context_edges_config_.specification()) {
-    case FillContextEdgesConfig::Attribution: {
+    case FillContextEdgesConfig::ATTRIBUTION: {
       name_ = "fill_attribution";
       break;
     }
-    case FillContextEdgesConfig::Association: {
+    case FillContextEdgesConfig::ASSOCIATION: {
       name_ = "fill_association";
       break;
     }
@@ -123,7 +123,7 @@ tensorflow::Status FillContextEdges::SetUpImpl(MetadataStore* store) {
     const int64 context_node_index = uniform_dist_context_index(gen);
     tensorflow::Status status;
     switch (fill_context_edges_config_.specification()) {
-      case FillContextEdgesConfig::Attribution: {
+      case FillContextEdgesConfig::ATTRIBUTION: {
         status = GenerateContextEdge<Attribution>(
             absl::get<Artifact>(
                 existing_non_context_nodes[non_context_node_index])
@@ -132,7 +132,7 @@ tensorflow::Status FillContextEdges::SetUpImpl(MetadataStore* store) {
             put_request, unique_checker_, curr_bytes);
         break;
       }
-      case FillContextEdgesConfig::Association: {
+      case FillContextEdgesConfig::ASSOCIATION: {
         status = GenerateContextEdge<Association>(
             absl::get<Execution>(
                 existing_non_context_nodes[non_context_node_index])

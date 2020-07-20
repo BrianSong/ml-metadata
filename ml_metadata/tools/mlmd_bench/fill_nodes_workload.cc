@@ -165,6 +165,10 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
   TF_RETURN_IF_ERROR(GetExistingTypes(fill_nodes_config_.specification(), store,
                                       existing_types));
 
+  if (existing_types.size() == 0) {
+    LOG(FATAL) << "There are no types inside db for inserting node!";
+  }
+
   // Sets the uniform distributions for selecting a registered type randomly.
   std::uniform_int_distribution<int64> uniform_dist_type_index{
       0, (int64)(existing_types.size() - 1)};

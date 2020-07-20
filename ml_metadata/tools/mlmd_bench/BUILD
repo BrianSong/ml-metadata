@@ -53,6 +53,20 @@ ml_metadata_cc_test(
 )
 
 cc_library(
+    name = "fill_events_workload",
+    srcs = ["fill_events_workload.cc"],
+    hdrs = ["fill_events_workload.h"],
+    deps = [
+        ":workload",
+        "//ml_metadata/metadata_store:metadata_store",
+        "//ml_metadata/metadata_store:types",
+        "//ml_metadata/proto:metadata_store_service_proto",
+        "//ml_metadata/tools/mlmd_bench/proto:mlmd_bench_proto",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_library(
     name = "fill_nodes_workload",
     srcs = ["fill_nodes_workload.cc"],
     hdrs = ["fill_nodes_workload.h"],
@@ -231,6 +245,23 @@ cc_library(
         "//ml_metadata/proto:metadata_store_service_proto",
         "//ml_metadata/tools/mlmd_bench/proto:mlmd_bench_proto",
         "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+ml_metadata_cc_test(
+    name = "util_test",
+    size = "small",
+    srcs = ["util_test.cc"],
+    deps = [
+        ":util",
+        #"@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "//ml_metadata/metadata_store:metadata_store",
+        "//ml_metadata/metadata_store:metadata_store_factory",
+        "//ml_metadata/proto:metadata_store_proto",
+        "//ml_metadata/proto:metadata_store_service_proto",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
     ],
 )
 

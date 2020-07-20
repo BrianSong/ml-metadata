@@ -40,10 +40,10 @@ std::vector<WorkloadConfig> EnumerateConfigs() {
   template_config.set_num_operations(kNumberOfOperations);
 
   template_config.mutable_fill_context_edges_config()->set_specification(
-      FillContextEdgesConfig::Attribution);
+      FillContextEdgesConfig::ATTRIBUTION);
   config_vector.push_back(template_config);
   template_config.mutable_fill_context_edges_config()->set_specification(
-      FillContextEdgesConfig::Association);
+      FillContextEdgesConfig::ASSOCIATION);
   config_vector.push_back(template_config);
 
   return config_vector;
