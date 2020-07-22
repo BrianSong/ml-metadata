@@ -1,6 +1,6 @@
 mlmd_config: {
   sqlite: {
-    filename_uri: "mlmd-bench-57345afhgfagfatyr.db"
+    filename_uri: "mlmd-bench.db"
     connection_mode: READWRITE_OPENCREATE
   }
 }
@@ -10,7 +10,7 @@ workload_configs: {
     specification: EXECUTION_TYPE
     num_properties: { minimum: 1 maximum: 10 }
   }
-  num_operations: 500
+  num_operations: 100
 }
 workload_configs: { 
   fill_types_config: {
