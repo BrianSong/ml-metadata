@@ -20,15 +20,13 @@ limitations under the License.
 #include "absl/types/variant.h"
 #include "ml_metadata/metadata_store/metadata_store.h"
 #include "ml_metadata/proto/metadata_store.pb.h"
-#include "ml_metadata/proto/metadata_store_service.pb.h"
 #include "ml_metadata/tools/mlmd_bench/proto/mlmd_bench.pb.h"
-#include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 
 namespace ml_metadata {
 
 // Defines a Type can be ArtifactType / ExecutionType / ContextType.
-using Type = absl::variant<ArtifactType, ExecutionType, ContextType>;
+using Type = ::absl::variant<ArtifactType, ExecutionType, ContextType>;
 
 // Defines a NodeType can be Artifact / Execution / Context.
 using NodeType = absl::variant<Artifact, Execution, Context>;

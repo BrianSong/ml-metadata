@@ -90,8 +90,6 @@ message FillEventsConfig {
     optional Specification specification = 1;
 }
 
-
-
 // The mlmd_bench workload config.
 message WorkloadConfig {
   oneof workload_config {

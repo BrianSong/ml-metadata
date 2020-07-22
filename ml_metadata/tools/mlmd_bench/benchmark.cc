@@ -16,6 +16,7 @@ limitations under the License.
 
 #include <vector>
 
+#include "absl/memory/memory.h"
 #include "ml_metadata/metadata_store/types.h"
 #include "ml_metadata/tools/mlmd_bench/fill_context_edges_workload.h"
 #include "ml_metadata/tools/mlmd_bench/fill_nodes_workload.h"
@@ -25,47 +26,39 @@ limitations under the License.
 #include "tensorflow/core/platform/logging.h"
 
 namespace ml_metadata {
+namespace {
 
-Benchmark::Benchmark(const MLMDBenchConfig& mlmd_bench_config) {
-  // For each `workload_config`, calls CreateWorkload() to create corresponding
-  // workload.
-  for (const WorkloadConfig& workload_config :
-       mlmd_bench_config.workload_configs()) {
-    CreateWorkload(workload_config);
-  }
-}
-
-Benchmark::~Benchmark() {
-  for (auto& workload : workloads_) {
-    workload.first.reset();
-  }
-}
-
-void Benchmark::CreateWorkload(const WorkloadConfig& workload_config) {
+// Creates the executable workload given `workload_config`.
+void CreateWorkload(const WorkloadConfig& workload_config,
+                    std::unique_ptr<WorkloadBase>& workload) {
   if (workload_config.has_fill_types_config()) {
-    std::unique_ptr<FillTypes> fill_types(new FillTypes(
+    workload = absl::make_unique<FillTypes>(FillTypes(
         workload_config.fill_types_config(), workload_config.num_operations()));
-    workloads_.push_back(std::make_pair(std::move(fill_types),
-                                        workload_config.num_operations()));
   } else if (workload_config.has_fill_nodes_config()) {
-    std::unique_ptr<FillNodes> fill_nodes(new FillNodes(
+    workload = absl::make_unique<FillNodes>(FillNodes(
         workload_config.fill_nodes_config(), workload_config.num_operations()));
-    workloads_.push_back(std::make_pair(std::move(fill_nodes),
-                                        workload_config.num_operations()));
   } else if (workload_config.has_fill_context_edges_config()) {
-    std::unique_ptr<FillContextEdges> fill_context_edges(
-        new FillContextEdges(workload_config.fill_context_edges_config(),
-                             workload_config.num_operations()));
-    workloads_.push_back(std::make_pair(std::move(fill_context_edges),
-                                        workload_config.num_operations()));
+    workload = absl::make_unique<FillContextEdges>(
+        FillContextEdges(workload_config.fill_context_edges_config(),
+                         workload_config.num_operations()));
   } else {
     LOG(FATAL) << "Cannot find corresponding workload!";
   }
+
+}  // namespace
+
+Benchmark::Benchmark(const MLMDBenchConfig& mlmd_bench_config) {
+  workloads_.resize(mlmd_bench_config.workload_configs_size());
+
+  // For each `workload_config`, calls CreateWorkload() to create corresponding
+  // workload.
+  for (int i = 0; i < mlmd_bench_config.workload_configs_size(); ++i) {
+    CreateWorkload(mlmd_bench_config.workload_configs(i), workloads_[i]);
+  }
 }
 
-std::vector<std::pair<std::unique_ptr<WorkloadBase>, int64>>&
-Benchmark::workloads() {
-  return workloads_;
+WorkloadBase* Benchmark::workload(const int64 workload_index) {
+  return workloads_[workload_index].get();
 }
 
-}  // namespace ml_metadata
+}  // namespace

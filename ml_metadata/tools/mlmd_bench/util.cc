@@ -18,13 +18,17 @@ limitations under the License.
 #include <vector>
 
 #include "absl/time/clock.h"
+#include "absl/types/variant.h"
 #include "ml_metadata/metadata_store/metadata_store.h"
+#include "ml_metadata/proto/metadata_store.pb.h"
 #include "ml_metadata/proto/metadata_store_service.pb.h"
+#include "ml_metadata/tools/mlmd_bench/proto/mlmd_bench.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 
 namespace ml_metadata {
 
+<<<<<<< HEAD
 namespace {
 
 template <typename T, typename NT>

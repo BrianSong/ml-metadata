@@ -14,82 +14,73 @@ limitations under the License.
 ==============================================================================*/
 #include "ml_metadata/tools/mlmd_bench/stats.h"
 
+#include <vector>
+
+#include "absl/strings/str_format.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "ml_metadata/metadata_store/types.h"
 
 namespace ml_metadata {
 
-Stats::Stats() : micro_seconds_(0), done_(0), next_report_(100), bytes_(0) {}
+ThreadStats::ThreadStats()
+    : accumulated_elapsed_time_(absl::Nanoseconds(0)),
+      done_(0),
+      bytes_(0),
+      next_report_(100) {}
 
-void Stats::Start() { start_ = absl::Now(); }
+void ThreadStats::Start() { start_ = absl::Now(); }
 
-void Stats::Update(const OpStats& op_stats, int64& total_done) {
+void ThreadStats::Update(const OpStats& op_stats,
+                         const int64 approx_total_done) {
   bytes_ += op_stats.transferred_bytes;
-  micro_seconds_ += op_stats.elapsed_time / absl::Microseconds(1);
+  accumulated_elapsed_time_ += op_stats.elapsed_time;
   done_++;
-  // Reports the current progress.
-  if (total_done >= next_report_) {
-    if (next_report_ < 1000) {
-      next_report_ += 100;
-    } else if (next_report_ < 5000) {
-      next_report_ += 500;
-    } else if (next_report_ < 10000) {
-      next_report_ += 1000;
-    } else if (next_report_ < 50000) {
-      next_report_ += 5000;
-    } else if (next_report_ < 100000) {
-      next_report_ += 10000;
-    } else if (next_report_ < 500000) {
-      next_report_ += 50000;
-    } else {
-      next_report_ += 100000;
-    }
-    std::fprintf(stderr, "... finished %lld ops%30s\r", total_done, "");
-    std::fflush(stderr);
+  static const int report_thresholds[]{1000,   5000,   10000,  50000,
+                                       100000, 500000, 1000000};
+  int threshold_index = 0;
+  if (approx_total_done < next_report_) {
+    return;
   }
+  // Reports the current progress with `approx_total_done`.
+  next_report_ += report_thresholds[threshold_index] / 10;
+  if (next_report_ > report_thresholds[threshold_index]) {
+    threshold_index++;
+  }
+  std::fprintf(stderr, "... finished %lld ops%30s\r", approx_total_done, "");
+  std::fflush(stderr);
 }
 
-void Stats::Stop() { finish_ = absl::Now(); }
+void ThreadStats::Stop() { finish_ = absl::Now(); }
 
-void Stats::Merge(const Stats& other) {
-  // Accumulates done_, bytes_ and micro_seconds_ of each thread stats.
-  done_ += other.done_;
-  bytes_ += other.bytes_;
-  micro_seconds_ += other.micro_seconds_;
+void ThreadStats::Merge(const ThreadStats& other) {
+  // Accumulates done_, bytes_ and accumulated_elapsed_time_ of each thread
+  // stats.
+  done_ += other.done();
+  bytes_ += other.bytes();
+  accumulated_elapsed_time_ += other.accumulated_elapsed_time();
   // Chooses the earliest start time and latest end time of each merged
   // thread stats.
-  if (other.start_ < start_) start_ = other.start_;
-  if (other.finish_ > finish_) finish_ = other.finish_;
+  start_ = std::min(start_, other.start());
+  finish_ = std::max(finish_, other.finish());
 }
 
-void Stats::Report(const std::string& specification) {
+void ThreadStats::Report(const std::string& specification) {
   std::string extra;
   if (bytes_ > 0) {
     // Rate is computed on actual elapsed time (latest end time minus
     // earliest start time of each thread) instead of the sum of per-thread
     // elapsed times.
-    double elapsed_seconds = micro_seconds_ * 1e-6;
-    char rate[100];
-    std::snprintf(rate, sizeof(rate), "%6.1f KB/s",
-                  (bytes_ / 1024.0) / elapsed_seconds);
+    int64 elapsed_seconds = accumulated_elapsed_time_ / absl::Seconds(1);
+    std::string rate =
+        absl::StrFormat("%6.1f KB/s", (bytes_ / 1024.0) / elapsed_seconds);
     extra = rate;
   }
-
-  std::fprintf(stdout, "%-12s : %11.3f micros/op;%s%s\n", specification.c_str(),
-               micro_seconds_ / done_, (extra.empty() ? "" : " "),
-               extra.c_str());
+  std::fprintf(
+      stdout, "%-12s : %11.3f micros/op;%s%s\n", specification.c_str(),
+      (double)(accumulated_elapsed_time_ / absl::Microseconds(1)) / done_,
+      (extra.empty() ? "" : " "), extra.c_str());
   std::fflush(stdout);
 }
-
-absl::Time Stats::start() { return start_; }
-
-absl::Time Stats::finish() { return finish_; }
-
-double Stats::micro_seconds() { return micro_seconds_; }
-
-int64 Stats::done() { return done_; }
-
-int64 Stats::bytes() { return bytes_; }
 
 }  // namespace ml_metadata
