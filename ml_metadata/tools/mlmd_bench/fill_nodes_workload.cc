@@ -91,6 +91,14 @@ tensorflow::Status GenerateNode(const std::string& node_name,
                                 const int64 num_properties,
                                 const int64 string_value_bytes, const T& type,
                                 NT& node, int64& curr_bytes) {
+  CHECK((std::is_same<T, ArtifactType>::value ||
+         std::is_same<T, ExecutionType>::value ||
+         std::is_same<T, ContextType>::value))
+      << "Unexpected Types";
+  CHECK((std::is_same<NT, Artifact>::value ||
+         std::is_same<NT, Execution>::value ||
+         std::is_same<NT, Context>::value))
+      << "Unexpected Node Types";
   // Insert nodes cases.
   node.set_name(node_name);
   node.set_type_id(type.id());

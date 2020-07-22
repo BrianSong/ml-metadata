@@ -27,8 +27,6 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status.h"
 
 namespace ml_metadata {
-
-<<<<<<< HEAD
 namespace {
 
 template <typename T, typename NT>

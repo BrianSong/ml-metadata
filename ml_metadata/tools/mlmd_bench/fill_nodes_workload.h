@@ -52,7 +52,8 @@ class FillNodes : public Workload<FillNodesWorkItemType> {
   // Specific implementation of RunOpImpl() for FillNodes workload according to
   // its semantic. Runs the work items(FillNodesRequests) on the store. Returns
   // detailed error if query executions failed.
-  tensorflow::Status RunOpImpl(int64 i, MetadataStore* store) final;
+  tensorflow::Status RunOpImpl(int64 work_items_index,
+                               MetadataStore* store) final;
 
   // Specific implementation of TearDownImpl() for FillNodes workload according
   // to its semantic. Cleans the work items.

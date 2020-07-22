@@ -55,17 +55,22 @@ tensorflow::Status GenerateContextEdge(
     PutAttributionsAndAssociationsRequest& put_request,
     std::map<int64, std::unordered_set<int64>>& unique_checker,
     int64& curr_bytes) {
+  CHECK((std::is_same<T, Attribution>::value ||
+         std::is_same<T, Association>::value))
+      << "Unexpected Types";
   if (unique_checker.find(context_node_id) != unique_checker.end() &&
       unique_checker.at(context_node_id).find(non_context_node_id) !=
           unique_checker.at(context_node_id).end()) {
     return tensorflow::errors::AlreadyExists(("Existing context edge!"));
   }
   if (std::is_same<T, Attribution>::value) {
-    put_request.add_attributions()->set_artifact_id(non_context_node_id);
-    put_request.add_attributions()->set_context_id(context_node_id);
+    Attribution* attribution = put_request.add_attributions();
+    attribution->set_artifact_id(non_context_node_id);
+    attribution->set_context_id(context_node_id);
   } else if (std::is_same<T, Association>::value) {
-    put_request.add_associations()->set_execution_id(non_context_node_id);
-    put_request.add_associations()->set_context_id(context_node_id);
+    Association* association = put_request.add_associations();
+    association->set_execution_id(non_context_node_id);
+    association->set_context_id(context_node_id);
   }
   if (unique_checker.find(context_node_id) == unique_checker.end()) {
     unique_checker.insert({context_node_id, std::unordered_set<int64>{}});

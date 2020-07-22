@@ -15,8 +15,11 @@ limitations under the License.
 #ifndef ML_METADATA_TOOLS_MLMD_BENCH_FILL_EVENTS_WORKLOAD_H
 #define ML_METADATA_TOOLS_MLMD_BENCH_FILL_EVENTS_WORKLOAD_H
 
+#include <unordered_set>
+
 #include "ml_metadata/metadata_store/metadata_store.h"
 #include "ml_metadata/metadata_store/types.h"
+#include "ml_metadata/proto/metadata_store.pb.h"
 #include "ml_metadata/proto/metadata_store_service.pb.h"
 #include "ml_metadata/tools/mlmd_bench/proto/mlmd_bench.pb.h"
 #include "ml_metadata/tools/mlmd_bench/workload.h"
@@ -32,7 +35,8 @@ class FillEvents : public Workload<PutEventsRequest> {
  protected:
   tensorflow::Status SetUpImpl(MetadataStore* store) final;
 
-  tensorflow::Status RunOpImpl(int64 i, MetadataStore* store) final;
+  tensorflow::Status RunOpImpl(int64 work_items_index,
+                               MetadataStore* store) final;
 
   tensorflow::Status TearDownImpl() final;
 
@@ -45,6 +49,8 @@ class FillEvents : public Workload<PutEventsRequest> {
   const int64 num_operations_;
   // String for indicating the name of current workload instance.
   std::string name_;
+
+  std::unordered_set<int64> output_artifact_ids_;
 };
 
 }  // namespace ml_metadata
