@@ -55,6 +55,7 @@ tensorflow::Status GenerateEvent(const FillEventsConfig& fill_events_config,
   }
   event->set_artifact_id(artifact_node_id);
   event->set_execution_id(execution_node_id);
+  curr_bytes += 8 * 2;
   return tensorflow::Status::OK();
 }
 

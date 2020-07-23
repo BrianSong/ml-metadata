@@ -34,8 +34,7 @@ namespace {
 
 // Template function that initializes the properties of the `put_request`.
 template <typename T>
-void InitializePutRequest(const FillNodesConfig& fill_nodes_config,
-                          FillNodesWorkItemType& put_request) {
+void InitializePutRequest(FillNodesWorkItemType& put_request) {
   put_request.emplace<T>();
 }
 
@@ -194,8 +193,7 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
     const int64 type_index = uniform_dist_type_index(gen);
     switch (fill_nodes_config_.specification()) {
       case FillNodesConfig::ARTIFACT: {
-        InitializePutRequest<PutArtifactsRequest>(fill_nodes_config_,
-                                                  put_request);
+        InitializePutRequest<PutArtifactsRequest>(put_request);
         TF_RETURN_IF_ERROR(GenerateNode<ArtifactType, Artifact>(
             node_name, num_properties, string_value_bytes,
             absl::get<ArtifactType>(existing_types[type_index]),
@@ -204,8 +202,7 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
         break;
       }
       case FillNodesConfig::EXECUTION: {
-        InitializePutRequest<PutExecutionsRequest>(fill_nodes_config_,
-                                                   put_request);
+        InitializePutRequest<PutExecutionsRequest>(put_request);
         TF_RETURN_IF_ERROR(GenerateNode<ExecutionType, Execution>(
             node_name, num_properties, string_value_bytes,
             absl::get<ExecutionType>(existing_types[type_index]),
@@ -214,8 +211,7 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
         break;
       }
       case FillNodesConfig::CONTEXT: {
-        InitializePutRequest<PutContextsRequest>(fill_nodes_config_,
-                                                 put_request);
+        InitializePutRequest<PutContextsRequest>(put_request);
         TF_RETURN_IF_ERROR(GenerateNode<ContextType, Context>(
             node_name, num_properties, string_value_bytes,
             absl::get<ContextType>(existing_types[type_index]),

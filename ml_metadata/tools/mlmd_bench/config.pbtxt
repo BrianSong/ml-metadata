@@ -1,13 +1,37 @@
 mlmd_config: {
   sqlite: {
-    filename_uri: "mlmd-bench.db"
+    filename_uri: "mlmd-bench-ADSFASDFASDGASGS.db"
     connection_mode: READWRITE_OPENCREATE
   }
 }
 workload_configs: { 
   fill_types_config: {
     update: false
+    specification: ARTIFACT_TYPE
+    num_properties: { minimum: 1 maximum: 10 }
+  }
+  num_operations: 200
+}
+workload_configs: { 
+  fill_types_config: {
+    update: false
     specification: EXECUTION_TYPE
+    num_properties: { minimum: 1 maximum: 10 }
+  }
+  num_operations: 200
+}
+workload_configs: { 
+  fill_types_config: {
+    update: false
+    specification: CONTEXT_TYPE
+    num_properties: { minimum: 1 maximum: 10 }
+  }
+  num_operations: 200
+}
+workload_configs: { 
+  fill_types_config: {
+    update: true
+    specification: ARTIFACT_TYPE
     num_properties: { minimum: 1 maximum: 10 }
   }
   num_operations: 100
@@ -17,6 +41,23 @@ workload_configs: {
     update: true
     specification: EXECUTION_TYPE
     num_properties: { minimum: 1 maximum: 10 }
+  }
+  num_operations: 300
+}
+workload_configs: { 
+  fill_types_config: {
+    update: true
+    specification: CONTEXT_TYPE
+    num_properties: { minimum: 1 maximum: 10 }
+  }
+  num_operations: 200
+}
+workload_configs: { 
+  fill_nodes_config: {
+    update: false
+    specification: ARTIFACT
+    num_properties: { minimum: 1 maximum: 10 }
+    string_value_bytes: { minimum: 1 maximum: 10 }
   }
   num_operations: 1000
 }
@@ -28,5 +69,92 @@ workload_configs: {
     string_value_bytes: { minimum: 1 maximum: 10 }
   }
   num_operations: 1000
+}
+workload_configs: { 
+  fill_nodes_config: {
+    update: false
+    specification: CONTEXT
+    num_properties: { minimum: 1 maximum: 10 }
+    string_value_bytes: { minimum: 1 maximum: 10 }
+  }
+  num_operations: 1000
+}
+workload_configs: { 
+  fill_context_edges_config: {
+    specification: ATTRIBUTION
+  }
+  num_operations: 300
+}
+workload_configs: { 
+  fill_context_edges_config: {
+    specification: ASSOCIATION
+  }
+  num_operations: 300
+}
+workload_configs: { 
+  fill_events_config: {
+    specification: INPUT
+  }
+  num_operations: 200
+}
+workload_configs: { 
+  fill_events_config: {
+    specification: OUTPUT
+  }
+  num_operations: 100
+}
+workload_configs: { 
+  read_types_config: {
+    specification: ALL_ARTIFACT_TYPES
+  }
+  num_operations: 100
+}
+workload_configs: { 
+  read_types_config: {
+    specification: ALL_EXECUTION_TYPES
+  }
+  num_operations: 100
+}
+workload_configs: { 
+  read_types_config: {
+    specification: ALL_CONTEXT_TYPES
+  }
+  num_operations: 100
+}
+workload_configs: { 
+  read_types_config: {
+    specification: ARTIFACT_TYPES_BY_ID
+  }
+  num_operations: 100
+}
+workload_configs: { 
+  read_types_config: {
+    specification: EXECUTION_TYPES_BY_ID
+  }
+  num_operations: 100
+}
+workload_configs: { 
+  read_types_config: {
+    specification: CONTEXT_TYPES_BY_ID
+  }
+  num_operations: 100
+}
+workload_configs: { 
+  read_types_config: {
+    specification: ARTIFACT_TYPE_BY_NAME
+  }
+  num_operations: 100
+}
+workload_configs: { 
+  read_types_config: {
+    specification: EXECUTION_TYPE_BY_NAME
+  }
+  num_operations: 100
+}
+workload_configs: { 
+  read_types_config: {
+    specification: CONTEXT_TYPE_BY_NAME
+  }
+  num_operations: 100
 }
 thread_env_config: { num_threads: 10 }

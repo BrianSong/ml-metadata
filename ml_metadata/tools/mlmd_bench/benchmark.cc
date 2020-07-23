@@ -19,9 +19,11 @@ limitations under the License.
 #include "absl/memory/memory.h"
 #include "ml_metadata/metadata_store/types.h"
 #include "ml_metadata/tools/mlmd_bench/fill_context_edges_workload.h"
+#include "ml_metadata/tools/mlmd_bench/fill_events_workload.h"
 #include "ml_metadata/tools/mlmd_bench/fill_nodes_workload.h"
 #include "ml_metadata/tools/mlmd_bench/fill_types_workload.h"
 #include "ml_metadata/tools/mlmd_bench/proto/mlmd_bench.pb.h"
+#include "ml_metadata/tools/mlmd_bench/read_types_workload.h"
 #include "ml_metadata/tools/mlmd_bench/workload.h"
 #include "tensorflow/core/platform/logging.h"
 
@@ -41,17 +43,25 @@ void CreateWorkload(const WorkloadConfig& workload_config,
     workload = absl::make_unique<FillContextEdges>(
         FillContextEdges(workload_config.fill_context_edges_config(),
                          workload_config.num_operations()));
+  } else if (workload_config.has_fill_events_config()) {
+    workload = absl::make_unique<FillEvents>(
+        FillEvents(workload_config.fill_events_config(),
+                   workload_config.num_operations()));
+  } else if (workload_config.has_read_types_config()) {
+    workload = absl::make_unique<ReadTypes>(ReadTypes(
+        workload_config.read_types_config(), workload_config.num_operations()));
   } else {
     LOG(FATAL) << "Cannot find corresponding workload!";
   }
+}
 
 }  // namespace
 
 Benchmark::Benchmark(const MLMDBenchConfig& mlmd_bench_config) {
   workloads_.resize(mlmd_bench_config.workload_configs_size());
 
-  // For each `workload_config`, calls CreateWorkload() to create corresponding
-  // workload.
+  // For each `workload_config`, calls CreateWorkload() to create
+  // corresponding workload.
   for (int i = 0; i < mlmd_bench_config.workload_configs_size(); ++i) {
     CreateWorkload(mlmd_bench_config.workload_configs(i), workloads_[i]);
   }
@@ -61,4 +71,4 @@ WorkloadBase* Benchmark::workload(const int64 workload_index) {
   return workloads_[workload_index].get();
 }
 
-}  // namespace
+}  // namespace ml_metadata
