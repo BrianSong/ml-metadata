@@ -26,7 +26,7 @@ limitations under the License.
 namespace ml_metadata {
 
 // Defines a Type can be ArtifactType / ExecutionType / ContextType.
-using Type = ::absl::variant<ArtifactType, ExecutionType, ContextType>;
+using Type = absl::variant<ArtifactType, ExecutionType, ContextType>;
 
 // Defines a NodeType can be Artifact / Execution / Context.
 using NodeType = absl::variant<Artifact, Execution, Context>;
@@ -44,6 +44,12 @@ tensorflow::Status InsertNodesInDb(int64 num_artifact_nodes,
                                    int64 num_execution_nodes,
                                    int64 num_context_nodes,
                                    MetadataStore* store);
+
+tensorflow::Status InsertContextEdgesInDb(int64 num_attributions,
+                                          int64 num_assications,
+                                          MetadataStore* store);
+
+tensorflow::Status InsertEventsInDb(int64 num_events, MetadataStore* store);
 
 // Gets all the existing types (the specific types that indicated by
 // `specification`) inside db and store them into `existing_types`.

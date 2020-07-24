@@ -71,8 +71,12 @@ tensorflow::Status GetTransferredBytesForNodeProperties(
 }
 
 // Calculates the transferred bytes for each node that will be inserted later.
-template <typename NT>
-tensorflow::Status GetTransferredBytes(const NT& node, int64& curr_bytes) {
+template <typename T, typename NT>
+tensorflow::Status GetTransferredBytes(const T& type, const NT& node,
+                                       int64& curr_bytes) {
+  curr_bytes += node.name().size();
+  curr_bytes += 8;
+  curr_bytes += type.name().size();
   TF_RETURN_IF_ERROR(
       GetTransferredBytesForNodeProperties(node.properties(), curr_bytes));
   TF_RETURN_IF_ERROR(GetTransferredBytesForNodeProperties(
@@ -121,8 +125,7 @@ tensorflow::Status GenerateNode(const std::string& node_name,
         .set_string_value(value);
     curr_num_properties++;
   }
-  TF_RETURN_IF_ERROR(GetTransferredBytes<NT>(node, curr_bytes));
-  return tensorflow::Status::OK();
+  return GetTransferredBytes<T, NT>(type, node, curr_bytes);
 }
 
 }  // namespace
@@ -255,8 +258,6 @@ tensorflow::Status FillNodes::RunOpImpl(const int64 work_items_index,
     default:
       return tensorflow::errors::InvalidArgument("Wrong specification!");
   }
-  return tensorflow::errors::InvalidArgument(
-      "Cannot execute the query due to wrong specification!");
 }
 
 tensorflow::Status FillNodes::TearDownImpl() {

@@ -25,6 +25,9 @@ limitations under the License.
 
 namespace ml_metadata {
 
+constexpr int kReportThresholds[]{1000,   5000,   10000,  50000,
+                                  100000, 500000, 1000000};
+
 ThreadStats::ThreadStats()
     : accumulated_elapsed_time_(absl::Nanoseconds(0)),
       done_(0),
@@ -38,19 +41,17 @@ void ThreadStats::Update(const OpStats& op_stats,
   bytes_ += op_stats.transferred_bytes;
   accumulated_elapsed_time_ += op_stats.elapsed_time;
   done_++;
-  static const int report_thresholds[]{1000,   5000,   10000,  50000,
-                                       100000, 500000, 1000000};
-  int threshold_index = 0;
   if (approx_total_done < next_report_) {
     return;
   }
-  // Reports the current progress with `approx_total_done`.
-  next_report_ += report_thresholds[threshold_index] / 10;
-  if (next_report_ > report_thresholds[threshold_index]) {
-    threshold_index++;
-  }
   std::fprintf(stderr, "... finished %lld ops%30s\r", approx_total_done, "");
   std::fflush(stderr);
+
+  int threshold_index = 0;
+  while (next_report_ >= kReportThresholds[threshold_index]) {
+    threshold_index += 1;
+  }
+  next_report_ += kReportThresholds[threshold_index] / 10;
 }
 
 void ThreadStats::Stop() { finish_ = absl::Now(); }

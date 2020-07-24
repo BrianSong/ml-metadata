@@ -56,9 +56,9 @@ message FillNodesConfig {
   // The FillNodesConfig can be set to insert or update mode
   optional bool update = 1 [default = false];
   enum Specification {
-      ARTIFACT = 0;
-      EXECUTION = 1;
-      CONTEXT = 2;
+    ARTIFACT = 0;
+    EXECUTION = 1;
+    CONTEXT = 2;
   }
   // Indicate which type of nodes to be filled
   optional Specification specification = 2;
@@ -73,8 +73,8 @@ message FillNodesConfig {
 // Create context edges: Attributions / Associations
 message FillContextEdgesConfig {
   enum Specification {
-      ATTRIBUTION = 0;
-      ASSOCIATION = 1;
+    ATTRIBUTION = 0;
+    ASSOCIATION = 1;
   }
   // Indicate which type of context's edges to be filled
   optional Specification specification = 1;
@@ -83,8 +83,8 @@ message FillContextEdgesConfig {
 // Create input / output events.
 message FillEventsConfig {
   enum Specification {
-      INPUT = 0;
-      OUTPUT = 1;
+    INPUT = 0;
+    OUTPUT = 1;
   }
   // Indicate the type (input / output) of the event
   optional Specification specification = 1;
@@ -93,17 +93,57 @@ message FillEventsConfig {
 // Read types: ArtifactTypes / ExecutionTypes / ContextTypes.
 message ReadTypesConfig {
   enum Specification {
-      ALL_ARTIFACT_TYPES = 0;
-      ALL_EXECUTION_TYPES = 1;
-      ALL_CONTEXT_TYPES = 2;
-      ARTIFACT_TYPES_BY_ID = 3;
-      EXECUTION_TYPES_BY_ID = 4;
-      CONTEXT_TYPES_BY_ID = 5;
-      ARTIFACT_TYPE_BY_NAME = 6;
-      EXECUTION_TYPE_BY_NAME = 7;
-      CONTEXT_TYPE_BY_NAME = 8;
+    ALL_ARTIFACT_TYPES = 0;
+    ALL_EXECUTION_TYPES = 1;
+    ALL_CONTEXT_TYPES = 2;
+    ARTIFACT_TYPES_BY_ID = 3;
+    EXECUTION_TYPES_BY_ID = 4;
+    CONTEXT_TYPES_BY_ID = 5;
+    ARTIFACT_TYPE_BY_NAME = 6;
+    EXECUTION_TYPE_BY_NAME = 7;
+    CONTEXT_TYPE_BY_NAME = 8;
   }
   // Indicate the specification to get types
+  optional Specification specification = 1;
+}
+
+// Read nodes: Artifacts / Executions / Contexts by their properties.
+message ReadNodesByPropertiesConfig {
+  enum Specification {
+    ARTIFACTS_BY_ID = 0;
+    EXECUTIONS_BY_ID = 1;
+    CONTEXTS_BY_ID = 2;
+    ARTIFACTS_BY_TYPE = 3;
+    EXECUTIONS_BY_TYPE = 4;
+    CONTEXTS_BY_TYPE = 5;
+    ARTIFACT_BY_TYPE_AND_NAME = 6;
+    EXECUTION_BY_TYPE_AND_NAME = 7;
+    CONTEXT_BY_TYPE_AND_NAME = 8;
+  }
+  // Indicate what properties (id, type, name, etc.)  
+  // should be used to get nodes (artifact, execution, context)
+  optional Specification specification = 1;
+}
+
+// Read nodes by traverse between Artifact/Execution and Contexts.
+message ReadNodesViaContextEdgesConfig {
+  enum Specification {
+    CONTEXTS_BY_ARTIFACT = 0;
+    CONTEXTS_BY_EXECUTION = 1;
+    ARTIFACTS_BY_CONTEXT = 2;
+    EXECUTIONS_BY_CONTEXT = 5;
+  }
+  // Indicate which transverse API is used to get nodes
+  optional Specification specification = 1;
+}
+
+// Read Events.
+message ReadEventsConfig {
+  enum Specification {
+    EVENTS_BY_ARTIFACT_IDS = 0;
+    EVENTS_BY_EXECUTION_IDS = 1;
+  }
+  // Indicate which specification is used to get events
   optional Specification specification = 1;
 }
 
@@ -115,9 +155,12 @@ message WorkloadConfig {
     FillContextEdgesConfig fill_context_edges_config = 3;
     FillEventsConfig fill_events_config = 4;
     ReadTypesConfig read_types_config = 5;
+    ReadNodesByPropertiesConfig read_nodes_by_properties_config = 6;
+    ReadNodesViaContextEdgesConfig read_nodes_via_context_edges_config = 7;
+    ReadEventsConfig read_event_config = 8;
   }
   // The number of operations to be run in parallel.
-  optional int64 num_operations = 6;
+  optional int64 num_operations = 9;
 }
 
 // The configuration for the multi-threaded environment which executes the

@@ -124,6 +124,13 @@ tensorflow::Status InsertNodesInDb(const int64 num_artifact_nodes,
   return tensorflow::Status::OK();
 }
 
+tensorflow::Status InsertContextEdgesInDb(const int64 num_attributions,
+                                          const int64 num_assications,
+                                          MetadataStore* store) {}
+
+tensorflow::Status InsertEventsInDb(const int64 num_events,
+                                    MetadataStore* store) {}
+
 tensorflow::Status GetExistingTypes(const int specification,
                                     MetadataStore* store,
                                     std::vector<Type>& existing_types) {

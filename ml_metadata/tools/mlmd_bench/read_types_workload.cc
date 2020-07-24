@@ -57,7 +57,6 @@ template <typename T>
 tensorflow::Status GetTransferredBytesForAllTypes(
     std::vector<Type>& existing_types, int64& curr_bytes) {
   for (auto& type : existing_types) {
-    type.emplace<T>();
     TF_RETURN_IF_ERROR(GetTransferredBytes<T>(absl::get<T>(type), curr_bytes));
   }
   return tensorflow::Status::OK();
@@ -204,6 +203,7 @@ tensorflow::Status ReadTypes::SetUpImpl(MetadataStore* store) {
       default:
         LOG(FATAL) << "Wrong specification for ReadTypes!";
     }
+    std::cout << curr_bytes << std::endl;
     work_items_.emplace_back(read_request, curr_bytes);
   }
   return tensorflow::Status::OK();
@@ -282,8 +282,6 @@ tensorflow::Status ReadTypes::RunOpImpl(const int64 work_items_index,
     default:
       return tensorflow::errors::InvalidArgument("Wrong specification!");
   }
-  return tensorflow::errors::InvalidArgument(
-      "Cannot execute the query due to wrong specification!");
 }
 
 tensorflow::Status ReadTypes::TearDownImpl() {
