@@ -159,7 +159,8 @@ tensorflow::Status ThreadRunner::Run(Benchmark& benchmark) {
         workload->GetName(), thread_stats_list,
         *benchmark.mlmd_bench_report().mutable_summaries(i));
     std::ofstream myfile;
-    myfile.open("num_abort.txt", std::ios::app);
+    myfile.open("/home/briansong/mlmd_experiments/result/num_abort.txt",
+                std::ios::app);
     myfile << workload->GetName() << " under " << num_threads_
            << " thread has a abort number of "
            << std::accumulate(num_abortion_list.begin(),
