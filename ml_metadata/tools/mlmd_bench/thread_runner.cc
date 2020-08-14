@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 #include "ml_metadata/tools/mlmd_bench/thread_runner.h"
 
+#include <numeric>
 #include <vector>
 
 #include "ml_metadata/metadata_store/metadata_store.h"
@@ -58,12 +59,10 @@ tensorflow::Status SetUpWorkload(const ConnectionConfig mlmd_config,
 
 // Executes the current workload and updates `curr_thread_stats` with `op_stats`
 // along the way.
-tensorflow::Status ExecuteWorkload(const int64 work_items_start_index,
-                                   const int64 op_per_thread,
-                                   MetadataStore& curr_store,
-                                   WorkloadBase& workload,
-                                   int64& approx_total_done,
-                                   ThreadStats& curr_thread_stats) {
+tensorflow::Status ExecuteWorkload(
+    const int64 work_items_start_index, const int64 op_per_thread,
+    MetadataStore& curr_store, WorkloadBase& workload, int64& approx_total_done,
+    ThreadStats& curr_thread_stats, int64& curr_num_abort) {
   int64 work_items_index = work_items_start_index;
   while (work_items_index < work_items_start_index + op_per_thread) {
     // Each operation has a op_stats.
@@ -76,6 +75,7 @@ tensorflow::Status ExecuteWorkload(const int64 work_items_start_index,
     }
     // Handles abort issues for concurrent writing to the db.
     if (!status.ok()) {
+      curr_num_abort++;
       continue;
     }
     work_items_index++;
@@ -121,6 +121,7 @@ tensorflow::Status ThreadRunner::Run(Benchmark& benchmark) {
     WorkloadBase* workload = benchmark.workload(i);
     std::vector<ThreadStats> thread_stats_list(num_threads_);
     std::vector<tensorflow::Status> thread_status_list(num_threads_);
+    std::vector<int64> num_abortion_list(num_threads_);
     TF_RETURN_IF_ERROR(SetUpWorkload(mlmd_config_, *workload));
     const int64 op_per_thread = workload->num_operations() / num_threads_;
     std::vector<std::unique_ptr<MetadataStore>> stores;
@@ -137,13 +138,14 @@ tensorflow::Status ThreadRunner::Run(Benchmark& benchmark) {
         ThreadStats& curr_thread_stats = thread_stats_list[t];
         MetadataStore* curr_store = stores[t].get();
         tensorflow::Status& curr_status = thread_status_list[t];
+        int64& curr_num_abort = num_abortion_list[t];
         pool.Schedule([op_per_thread, workload, work_items_start_index,
                        curr_store, &curr_thread_stats, &curr_status,
-                       &approx_total_done]() {
+                       &approx_total_done, &curr_num_abort]() {
           curr_thread_stats.Start();
           curr_status.Update(ExecuteWorkload(
               work_items_start_index, op_per_thread, *curr_store, *workload,
-              approx_total_done, curr_thread_stats));
+              approx_total_done, curr_thread_stats, curr_num_abort));
           curr_thread_stats.Stop();
         });
         TF_RETURN_IF_ERROR(curr_status);
@@ -153,6 +155,10 @@ tensorflow::Status ThreadRunner::Run(Benchmark& benchmark) {
     MergeThreadStatsAndReport(
         workload->GetName(), thread_stats_list,
         *benchmark.mlmd_bench_report().mutable_summaries(i));
+    std::cout << workload->GetName() << " under " << num_threads_
+              << " thread has a abort number of "
+              << std::accumulate(num_abortion_list.begin(),
+                                 num_abortion_list.end(), 0);
   }
   return tensorflow::Status::OK();
 }
