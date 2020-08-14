@@ -14,7 +14,10 @@ limitations under the License.
 ==============================================================================*/
 #include "ml_metadata/tools/mlmd_bench/thread_runner.h"
 
+#include <fstream>
+#include <iostream>
 #include <numeric>
+#include <string>
 #include <vector>
 
 #include "ml_metadata/metadata_store/metadata_store.h"
@@ -155,10 +158,14 @@ tensorflow::Status ThreadRunner::Run(Benchmark& benchmark) {
     MergeThreadStatsAndReport(
         workload->GetName(), thread_stats_list,
         *benchmark.mlmd_bench_report().mutable_summaries(i));
-    std::cout << workload->GetName() << " under " << num_threads_
-              << " thread has a abort number of "
-              << std::accumulate(num_abortion_list.begin(),
-                                 num_abortion_list.end(), 0);
+    std::ofstream myfile;
+    myfile.open("num_abort.txt", std::ios::app);
+    myfile << workload->GetName() << " under " << num_threads_
+           << " thread has a abort number of "
+           << std::accumulate(num_abortion_list.begin(),
+                              num_abortion_list.end(), 0)
+           << std::endl;
+    myfile.close();
   }
   return tensorflow::Status::OK();
 }
