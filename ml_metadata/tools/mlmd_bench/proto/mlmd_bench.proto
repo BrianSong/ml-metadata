@@ -231,4 +231,6 @@ message WorkloadConfigResult {
   optional double microseconds_per_operation = 2;
   // Bytes / second for the current workload_config.
   optional double bytes_per_second = 3;
+
+  optional double total_time = 4;
 }

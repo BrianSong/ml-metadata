@@ -79,6 +79,8 @@ void ThreadStats::Report(const std::string& specification,
     return;
   }
 
+  workload_summary.set_total_time(absl::ToDoubleSeconds(finish_ - start_));
+
   const double microseconds_per_operation =
       (accumulated_elapsed_time_ / absl::Microseconds(1)) / done_;
   workload_summary.set_microseconds_per_operation(microseconds_per_operation);
