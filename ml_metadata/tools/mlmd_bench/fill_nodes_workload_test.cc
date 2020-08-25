@@ -35,6 +35,7 @@ constexpr int kNumberOfOperations = 100;
 constexpr int kNumberOfExistedTypesInDb = 100;
 constexpr int kNumberOfExistedNodesInDb = 100;
 constexpr int kNumberOfExistedNodesButNotEnoughForUpdate = 50;
+constexpr int kNumberOfExistedNodesEnoughForUpdate = 200;
 constexpr int kNumberOfNodesPerRequest = 1;
 
 constexpr char kConfig[] = R"(
@@ -311,32 +312,79 @@ TEST_P(FillNodesUpdateParameterizedTestFixture,
   EXPECT_EQ(GetParam().num_operations(), fill_nodes_update_->num_operations());
 }
 
-// TEST_P(FillNodesUpdateParameterizedTestFixture,
-//        UpdateWhenDbContainsNotEnoughNodesTest) {
-//   TF_ASSERT_OK(InsertNodesInDb(
-//       /*num_artifact_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
-//       /*num_execution_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
-//       /*num_context_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
-//       *store_));
-//   TF_ASSERT_OK(fill_nodes_update_->SetUp(store_.get()));
-//   std::vector<Node> existing_nodes_before_update;
-//   TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
-//                                 existing_nodes_before_update));
-//   for (int64 i = 0; i < fill_nodes_update_->num_operations(); ++i) {
-//     OpStats op_stats;
-//     TF_ASSERT_OK(fill_nodes_update_->RunOp(i, store_.get(), op_stats));
-//   }
-//   std::vector<Node> existing_nodes_after_update;
-//   TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
-//                                 existing_nodes_after_update));
+TEST_P(FillNodesUpdateParameterizedTestFixture,
+       UpdateWhenDbContainsNotEnoughNodesTest) {
+  TF_ASSERT_OK(InsertNodesInDb(
+      /*num_artifact_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
+      /*num_execution_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
+      /*num_context_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
+      *store_));
+  TF_ASSERT_OK(fill_nodes_update_->SetUp(store_.get()));
+  std::vector<Node> existing_nodes_before_update;
+  TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
+                                existing_nodes_before_update));
+  for (int64 i = 0; i < fill_nodes_update_->num_operations(); ++i) {
+    OpStats op_stats;
+    TF_ASSERT_OK(fill_nodes_update_->RunOp(i, store_.get(), op_stats));
+  }
+  std::vector<Node> existing_nodes_after_update;
+  TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
+                                existing_nodes_after_update));
 
-//   ASSERT_EQ(existing_nodes_before_update.size(),
-//             existing_nodes_after_update.size());
+  ASSERT_EQ(existing_nodes_before_update.size(),
+            existing_nodes_after_update.size());
 
-//   CheckUpdates(GetParam().fill_nodes_config(), existing_nodes_before_update,
-//                existing_nodes_after_update,
-//                (int64)existing_nodes_after_update.size());
-// }
+  CheckUpdates(GetParam().fill_nodes_config(), existing_nodes_before_update,
+               existing_nodes_after_update,
+               (int64)existing_nodes_after_update.size());
+}
+
+TEST_P(FillNodesUpdateParameterizedTestFixture,
+       SetUpImplWhenDbContainsEnoughNodesTest) {
+  TF_ASSERT_OK(InsertNodesInDb(
+      /*num_artifact_types=*/kNumberOfExistedNodesEnoughForUpdate,
+      /*num_execution_types=*/kNumberOfExistedNodesEnoughForUpdate,
+      /*num_context_types=*/kNumberOfExistedNodesEnoughForUpdate, *store_));
+  // Gets the number of types inside db before SetUpImpl().
+  std::vector<Node> existing_nodes_before_setup;
+  TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
+                                existing_nodes_before_setup));
+  TF_ASSERT_OK(fill_nodes_update_->SetUp(store_.get()));
+  std::vector<Node> existing_nodes_after_setup;
+  TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
+                                existing_nodes_after_setup));
+  EXPECT_EQ(existing_nodes_before_setup.size(),
+            existing_nodes_after_setup.size());
+  EXPECT_EQ(GetParam().num_operations(), fill_nodes_update_->num_operations());
+}
+
+TEST_P(FillNodesUpdateParameterizedTestFixture,
+       UpdateWhenDbContainsEnoughNodesTest) {
+  TF_ASSERT_OK(InsertNodesInDb(
+      /*num_artifact_types=*/kNumberOfExistedNodesEnoughForUpdate,
+      /*num_execution_types=*/kNumberOfExistedNodesEnoughForUpdate,
+      /*num_context_types=*/kNumberOfExistedNodesEnoughForUpdate, *store_));
+  TF_ASSERT_OK(fill_nodes_update_->SetUp(store_.get()));
+  std::vector<Node> existing_nodes_before_update;
+  TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
+                                existing_nodes_before_update));
+
+  for (int64 i = 0; i < fill_nodes_update_->num_operations(); ++i) {
+    OpStats op_stats;
+    TF_ASSERT_OK(fill_nodes_update_->RunOp(i, store_.get(), op_stats));
+  }
+
+  std::vector<Node> existing_nodes_after_update;
+  TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
+                                existing_nodes_after_update));
+
+  ASSERT_EQ(existing_nodes_before_update.size(),
+            existing_nodes_after_update.size());
+
+  CheckUpdates(GetParam().fill_nodes_config(), existing_nodes_before_update,
+               existing_nodes_after_update,
+               fill_nodes_update_->num_operations());
+}
 
 INSTANTIATE_TEST_CASE_P(
     FillNodesInsertTest, FillNodesInsertParameterizedTestFixture,
