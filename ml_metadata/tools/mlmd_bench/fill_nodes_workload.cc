@@ -124,23 +124,23 @@ tensorflow::Status SetTypeForUpdateNode(const N& selected_node,
                                         MetadataStore& store,
                                         Type& update_type) {
   if (std::is_same<N, Artifact>::value) {
-    GetArtifactTypeRequest request;
-    request.set_type_name(selected_node.type());
-    GetArtifactTypeResponse response;
-    TF_RETURN_IF_ERROR(store.GetArtifactType(request, &response));
-    update_type = response.artifact_type();
+    GetArtifactTypesByIDRequest request;
+    request.add_type_ids(selected_node.type_id());
+    GetArtifactTypesByIDResponse response;
+    TF_RETURN_IF_ERROR(store.GetArtifactTypesByID(request, &response));
+    update_type = response.artifact_types(0);
   } else if (std::is_same<N, Execution>::value) {
-    GetExecutionTypeRequest request;
-    request.set_type_name(selected_node.type());
-    GetExecutionTypeResponse response;
-    TF_RETURN_IF_ERROR(store.GetExecutionType(request, &response));
-    update_type = response.execution_type();
+    GetExecutionTypesByIDRequest request;
+    request.add_type_ids(selected_node.type_id());
+    GetExecutionTypesByIDResponse response;
+    TF_RETURN_IF_ERROR(store.GetExecutionTypesByID(request, &response));
+    update_type = response.execution_types(0);
   } else {
-    GetContextTypeRequest request;
-    request.set_type_name(selected_node.type());
-    GetContextTypeResponse response;
-    TF_RETURN_IF_ERROR(store.GetContextType(request, &response));
-    update_type = response.context_type();
+    GetContextTypesByIDRequest request;
+    request.add_type_ids(selected_node.type_id());
+    GetContextTypesByIDResponse response;
+    TF_RETURN_IF_ERROR(store.GetContextTypesByID(request, &response));
+    update_type = response.context_types(0);
   }
   return tensorflow::Status::OK();
 }
@@ -177,11 +177,11 @@ tensorflow::Status PrepareNodeForUpdate(const T& insert_type, const int64 i,
   if (!existing_nodes.empty()) {
     Node existing_node = existing_nodes.back();
     existing_nodes.pop_back();
-    node.set_id(absl::get<N>(existing_node).id());
-    node.set_type_id(absl::get<N>(existing_node).type_id());
-    node.set_name(absl::get<N>(existing_node).name());
-    TF_RETURN_IF_ERROR(SetTypeForUpdateNode<N>(absl::get<N>(existing_node),
-                                               store, update_type));
+    node = absl::get<N>(existing_node);
+    // node.set_type_id(absl::get<N>(existing_node).type_id());
+    // node.set_name(absl::get<N>(existing_node).name());
+    TF_RETURN_IF_ERROR(
+        SetTypeForUpdateNode(absl::get<N>(existing_node), store, update_type));
   } else {
     update_type = insert_type;
     node.set_type_id(insert_type.id());
@@ -328,10 +328,10 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
         InitializePutRequest<PutArtifactsRequest>(num_nodes, put_request);
         auto nodes =
             absl::get<PutArtifactsRequest>(put_request).mutable_artifacts();
-        GenerateNodes<ArtifactType, Artifact>(
+        TF_RETURN_IF_ERROR(GenerateNodes<ArtifactType, Artifact>(
             fill_nodes_config_, nodes_param,
             absl::get<ArtifactType>(existing_types[type_index]), *store,
-            existing_nodes, *nodes, curr_bytes);
+            existing_nodes, *nodes, curr_bytes));
         curr_bytes +=
             SetArtifactsAdditionalFields(nodes_param.nodes_name, *nodes);
         break;
@@ -340,21 +340,21 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
         InitializePutRequest<PutExecutionsRequest>(num_nodes, put_request);
         auto nodes =
             absl::get<PutExecutionsRequest>(put_request).mutable_executions();
-        GenerateNodes<ExecutionType, Execution>(
+        TF_RETURN_IF_ERROR(GenerateNodes<ExecutionType, Execution>(
             fill_nodes_config_, nodes_param,
             absl::get<ExecutionType>(existing_types[type_index]), *store,
-            existing_nodes, *nodes, curr_bytes);
+            existing_nodes, *nodes, curr_bytes));
         curr_bytes += SetExecutionsAdditionalFields(*nodes);
         break;
       }
       case FillNodesConfig::CONTEXT: {
         InitializePutRequest<PutContextsRequest>(num_nodes, put_request);
-        GenerateNodes<ContextType, Context>(
+        TF_RETURN_IF_ERROR(GenerateNodes<ContextType, Context>(
             fill_nodes_config_, nodes_param,
             absl::get<ContextType>(existing_types[type_index]), *store,
             existing_nodes,
             *absl::get<PutContextsRequest>(put_request).mutable_contexts(),
-            curr_bytes);
+            curr_bytes));
         break;
       }
       default:

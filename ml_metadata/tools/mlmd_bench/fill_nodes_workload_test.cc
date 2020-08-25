@@ -35,7 +35,7 @@ constexpr int kNumberOfOperations = 100;
 constexpr int kNumberOfExistedTypesInDb = 100;
 constexpr int kNumberOfExistedNodesInDb = 100;
 constexpr int kNumberOfExistedNodesButNotEnoughForUpdate = 50;
-constexpr int kNumberOfExistedNodesEnoughForUpdate = 200;
+constexpr int kNumberOfExistedNodesEnoughForUpdate = 100;
 constexpr int kNumberOfNodesPerRequest = 1;
 
 constexpr char kConfig[] = R"(
@@ -319,6 +319,9 @@ TEST_P(FillNodesUpdateParameterizedTestFixture,
       /*num_execution_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
       /*num_context_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
       *store_));
+  std::vector<Node> existing_nodes_before_setup;
+  TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
+                                existing_nodes_before_setup));
   TF_ASSERT_OK(fill_nodes_update_->SetUp(store_.get()));
   std::vector<Node> existing_nodes_before_update;
   TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
