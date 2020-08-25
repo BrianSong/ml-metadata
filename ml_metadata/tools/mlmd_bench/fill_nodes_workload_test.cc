@@ -34,11 +34,12 @@ namespace {
 constexpr int kNumberOfOperations = 100;
 constexpr int kNumberOfExistedTypesInDb = 100;
 constexpr int kNumberOfExistedNodesInDb = 100;
-constexpr int kNumberOfNodesPerRequest = 10;
+constexpr int kNumberOfExistedNodesButNotEnoughForUpdate = 50;
+constexpr int kNumberOfNodesPerRequest = 1;
 
 constexpr char kConfig[] = R"(
         fill_nodes_config: {
-          num_properties: { minimum: 1 maximum: 10 }
+          num_properties: { minimum: 10 maximum: 10 }
           string_value_bytes: { minimum: 1 maximum: 10 }
         }
       )";
@@ -91,6 +92,37 @@ std::vector<WorkloadConfig> EnumerateConfigs(const bool is_update) {
   }
 
   return configs;
+}
+
+void CheckUpdates(const FillNodesConfig& fill_nodes_config,
+                  const std::vector<Node>& nodes_before,
+                  const std::vector<Node>& nodes_after,
+                  const int64 num_operations) {
+  for (int64 i = 0; i < num_operations; ++i) {
+    switch (fill_nodes_config.specification()) {
+      case FillNodesConfig::ARTIFACT: {
+        EXPECT_LT(
+            absl::get<Artifact>(nodes_before[i]).custom_properties().size(),
+            absl::get<Artifact>(nodes_after[i]).custom_properties().size());
+        break;
+      }
+      case FillNodesConfig::EXECUTION: {
+        EXPECT_LT(
+            absl::get<Execution>(nodes_before[i]).custom_properties().size(),
+            absl::get<Execution>(nodes_after[i]).custom_properties().size());
+        break;
+      }
+      case FillNodesConfig::CONTEXT: {
+        EXPECT_LT(
+            absl::get<Context>(nodes_before[i]).custom_properties().size(),
+            absl::get<Context>(nodes_after[i]).custom_properties().size());
+        break;
+      }
+      default:
+        LOG(FATAL) << "Wrong specification for FillTypes configuration input "
+                      "in testing !";
+    }
+  }
 }
 
 // Test fixture that uses the same data configuration for multiple following
@@ -209,9 +241,110 @@ TEST_P(FillNodesInsertParameterizedTestFixture, InsertWhenSomeNodesExistTest) {
       existing_nodes_after_insert.size() - existing_nodes_before_insert.size());
 }
 
+class FillNodesUpdateParameterizedTestFixture
+    : public ::testing::TestWithParam<WorkloadConfig> {
+ protected:
+  void SetUp() override {
+    ConnectionConfig mlmd_config;
+    // Uses a fake in-memory SQLite database for testing.
+    mlmd_config.mutable_fake_database();
+    TF_ASSERT_OK(CreateMetadataStore(mlmd_config, &store_));
+    fill_nodes_update_ = absl::make_unique<FillNodes>(
+        FillNodes(GetParam().fill_nodes_config(), GetParam().num_operations()));
+    TF_ASSERT_OK(InsertTypesInDb(
+        /*num_artifact_types=*/kNumberOfExistedTypesInDb,
+        /*num_execution_types=*/kNumberOfExistedTypesInDb,
+        /*num_context_types=*/kNumberOfExistedTypesInDb, *store_));
+  }
+
+  std::unique_ptr<FillNodes> fill_nodes_update_;
+  std::unique_ptr<MetadataStore> store_;
+};
+
+TEST_P(FillNodesUpdateParameterizedTestFixture,
+       SetUpImplWhenDbContainsNoNodesTest) {
+  TF_ASSERT_OK(fill_nodes_update_->SetUp(store_.get()));
+  std::vector<Node> existing_nodes;
+  TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
+                                existing_nodes));
+  EXPECT_EQ(existing_nodes.size(),
+            GetParam().num_operations() * kNumberOfNodesPerRequest);
+  EXPECT_EQ(GetParam().num_operations(), fill_nodes_update_->num_operations());
+}
+
+TEST_P(FillNodesUpdateParameterizedTestFixture,
+       UpdateWhenDbContainsNoNodesTest) {
+  TF_ASSERT_OK(fill_nodes_update_->SetUp(store_.get()));
+  std::vector<Node> existing_nodes_before_update;
+  TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
+                                existing_nodes_before_update));
+
+  for (int64 i = 0; i < fill_nodes_update_->num_operations(); ++i) {
+    OpStats op_stats;
+    TF_ASSERT_OK(fill_nodes_update_->RunOp(i, store_.get(), op_stats));
+  }
+  std::vector<Node> existing_nodes_after_update;
+  TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
+                                existing_nodes_after_update));
+
+  ASSERT_EQ(existing_nodes_before_update.size(),
+            existing_nodes_after_update.size());
+
+  CheckUpdates(GetParam().fill_nodes_config(), existing_nodes_before_update,
+               existing_nodes_after_update,
+               (int64)existing_nodes_after_update.size());
+}
+
+TEST_P(FillNodesUpdateParameterizedTestFixture,
+       SetUpImplWhenDbContainsNotEnoughNodesTest) {
+  TF_ASSERT_OK(InsertNodesInDb(
+      /*num_artifact_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
+      /*num_execution_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
+      /*num_context_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
+      *store_));
+  TF_ASSERT_OK(fill_nodes_update_->SetUp(store_.get()));
+  std::vector<Node> existing_nodes;
+  TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
+                                existing_nodes));
+  EXPECT_EQ(existing_nodes.size(),
+            fill_nodes_update_->num_operations() * kNumberOfNodesPerRequest);
+  EXPECT_EQ(GetParam().num_operations(), fill_nodes_update_->num_operations());
+}
+
+// TEST_P(FillNodesUpdateParameterizedTestFixture,
+//        UpdateWhenDbContainsNotEnoughNodesTest) {
+//   TF_ASSERT_OK(InsertNodesInDb(
+//       /*num_artifact_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
+//       /*num_execution_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
+//       /*num_context_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
+//       *store_));
+//   TF_ASSERT_OK(fill_nodes_update_->SetUp(store_.get()));
+//   std::vector<Node> existing_nodes_before_update;
+//   TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
+//                                 existing_nodes_before_update));
+//   for (int64 i = 0; i < fill_nodes_update_->num_operations(); ++i) {
+//     OpStats op_stats;
+//     TF_ASSERT_OK(fill_nodes_update_->RunOp(i, store_.get(), op_stats));
+//   }
+//   std::vector<Node> existing_nodes_after_update;
+//   TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
+//                                 existing_nodes_after_update));
+
+//   ASSERT_EQ(existing_nodes_before_update.size(),
+//             existing_nodes_after_update.size());
+
+//   CheckUpdates(GetParam().fill_nodes_config(), existing_nodes_before_update,
+//                existing_nodes_after_update,
+//                (int64)existing_nodes_after_update.size());
+// }
+
 INSTANTIATE_TEST_CASE_P(
     FillNodesInsertTest, FillNodesInsertParameterizedTestFixture,
     ::testing::ValuesIn(EnumerateConfigs(/*is_update=*/false)));
+
+INSTANTIATE_TEST_CASE_P(
+    FillNodesUpdateTest, FillNodesUpdateParameterizedTestFixture,
+    ::testing::ValuesIn(EnumerateConfigs(/*is_update=*/true)));
 
 }  // namespace
 }  // namespace ml_metadata

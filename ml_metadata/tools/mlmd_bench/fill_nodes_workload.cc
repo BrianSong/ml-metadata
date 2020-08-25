@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 #include "ml_metadata/tools/mlmd_bench/fill_nodes_workload.h"
 
+#include <algorithm>
 #include <random>
 #include <type_traits>
 #include <vector>
@@ -118,15 +119,116 @@ int64 GetTransferredBytes(const NT& node) {
   return bytes;
 }
 
+template <typename N>
+tensorflow::Status SetTypeForUpdateNode(const N& selected_node,
+                                        MetadataStore& store,
+                                        Type& update_type) {
+  if (std::is_same<N, Artifact>::value) {
+    GetArtifactTypeRequest request;
+    request.set_type_name(selected_node.type());
+    GetArtifactTypeResponse response;
+    TF_RETURN_IF_ERROR(store.GetArtifactType(request, &response));
+    update_type = response.artifact_type();
+  } else if (std::is_same<N, Execution>::value) {
+    GetExecutionTypeRequest request;
+    request.set_type_name(selected_node.type());
+    GetExecutionTypeResponse response;
+    TF_RETURN_IF_ERROR(store.GetExecutionType(request, &response));
+    update_type = response.execution_type();
+  } else {
+    GetContextTypeRequest request;
+    request.set_type_name(selected_node.type());
+    GetContextTypeResponse response;
+    TF_RETURN_IF_ERROR(store.GetContextType(request, &response));
+    update_type = response.context_type();
+  }
+  return tensorflow::Status::OK();
+}
+
+template <typename N>
+tensorflow::Status InsertMakeUpNodeIntoDb(MetadataStore& store, N& node) {
+  if (std::is_same<N, Artifact>::value) {
+    PutArtifactsRequest request;
+    request.add_artifacts()->CopyFrom(node);
+    PutArtifactsResponse response;
+    TF_RETURN_IF_ERROR(store.PutArtifacts(request, &response));
+    node.set_id(response.artifact_ids(0));
+  } else if (std::is_same<N, Execution>::value) {
+    PutExecutionsRequest request;
+    request.add_executions()->CopyFrom(node);
+    PutExecutionsResponse response;
+    TF_RETURN_IF_ERROR(store.PutExecutions(request, &response));
+    node.set_id(response.execution_ids(0));
+  } else {
+    PutContextsRequest request;
+    request.add_contexts()->CopyFrom(node);
+    PutContextsResponse response;
+    TF_RETURN_IF_ERROR(store.PutContexts(request, &response));
+    node.set_id(response.context_ids(0));
+  }
+  return tensorflow::Status::OK();
+}
+
+template <typename T, typename N>
+tensorflow::Status PrepareNodeForUpdate(const T& insert_type, const int64 i,
+                                        MetadataStore& store,
+                                        std::vector<Node>& existing_nodes,
+                                        N& node, Type& update_type) {
+  if (!existing_nodes.empty()) {
+    Node existing_node = existing_nodes.back();
+    existing_nodes.pop_back();
+    node.set_id(absl::get<N>(existing_node).id());
+    node.set_type_id(absl::get<N>(existing_node).type_id());
+    node.set_name(absl::get<N>(existing_node).name());
+    TF_RETURN_IF_ERROR(SetTypeForUpdateNode<N>(absl::get<N>(existing_node),
+                                               store, update_type));
+  } else {
+    update_type = insert_type;
+    node.set_type_id(insert_type.id());
+    node.set_name(
+        absl::StrCat("makeup_node", absl::FormatTime(absl::Now()), "_", i));
+    TF_RETURN_IF_ERROR(InsertMakeUpNodeIntoDb(store, node));
+  }
+  return tensorflow::Status::OK();
+}
+
+template <typename T, typename N>
+int64 SetNodePropertiesGivenType(const NodesParam& nodes_param, const T& type,
+                                 N& node) {
+  // Uses "********" as the fake property value for current node.
+  std::string property_value(nodes_param.string_value_bytes, '*');
+  // Loops over the types properties while generating the node's properties
+  // accordingly.
+  // TODO(briansong) Adds more property types support.
+  int64 populated_num_properties = 0;
+  for (const auto& p : type.properties()) {
+    (*node.mutable_properties())[p.first].set_string_value(property_value);
+    if (++populated_num_properties > nodes_param.num_properties) {
+      break;
+    }
+  }
+  // If the node's number of properties is greater than the type, uses custom
+  // properties instead.
+  while (populated_num_properties++ < nodes_param.num_properties) {
+    (*node.mutable_custom_properties())[absl::StrCat("custom_p-",
+                                                     populated_num_properties)]
+        .set_string_value(property_value);
+  }
+  return GetTransferredBytes<N>(node);
+}
+
 // Generates insert node.
 // For insert cases, the node's type will be `type` and its properties will be
 // generated w.r.t. `node_name`, `num_properties` and `string_value_bytes`.
 // Leaves it as return `void` instead of return `int64` for now because
 // FillNodes update mode will return `tensorflow::Status` in the future.
 template <typename T, typename N>
-void GenerateNodes(const NodesParam& nodes_param, const T& type,
-                   google::protobuf::RepeatedPtrField<N>& nodes,
-                   int64& curr_bytes) {
+tensorflow::Status GenerateNodes(const FillNodesConfig& fill_nodes_config,
+                                 const NodesParam& nodes_param,
+                                 const T& insert_type, MetadataStore& store,
+                                 std::vector<Node>& existing_nodes,
+                                 google::protobuf::RepeatedPtrField<N>& nodes,
+                                 int64& curr_bytes) {
   CHECK((std::is_same<T, ArtifactType>::value ||
          std::is_same<T, ExecutionType>::value ||
          std::is_same<T, ContextType>::value))
@@ -137,31 +239,20 @@ void GenerateNodes(const NodesParam& nodes_param, const T& type,
   // Insert nodes cases.
   // Loops over all the node inside `nodes` and sets up one by one.
   for (int64 i = 0; i < nodes.size(); ++i) {
-    nodes[i].set_name(absl::StrCat(nodes_param.nodes_name, "_node_", i));
-    nodes[i].set_type_id(type.id());
-    // Uses "********" as the fake property value for current node.
-    std::string property_value(nodes_param.string_value_bytes, '*');
-    // Loops over the types properties while generating the node's properties
-    // accordingly.
-    // TODO(briansong) Adds more property types support.
-    int64 populated_num_properties = 0;
-    for (const auto& p : type.properties()) {
-      (*nodes[i].mutable_properties())[p.first].set_string_value(
-          property_value);
-      if (++populated_num_properties > nodes_param.num_properties) {
-        break;
-      }
+    if (fill_nodes_config.update()) {
+      Type update_type;
+      TF_RETURN_IF_ERROR(PrepareNodeForUpdate<T, N>(
+          insert_type, i, store, existing_nodes, nodes[i], update_type));
+      curr_bytes += SetNodePropertiesGivenType(
+          nodes_param, absl::get<T>(update_type), nodes[i]);
+    } else {
+      nodes[i].set_name(absl::StrCat(nodes_param.nodes_name, "_node_", i));
+      nodes[i].set_type_id(insert_type.id());
+      curr_bytes +=
+          SetNodePropertiesGivenType(nodes_param, insert_type, nodes[i]);
     }
-    // If the node's number of properties is greater than the type, uses custom
-    // properties instead.
-    while (populated_num_properties++ < nodes_param.num_properties) {
-      (*nodes[i].mutable_custom_properties())[absl::StrCat(
-                                                  "custom_p-",
-                                                  populated_num_properties)]
-          .set_string_value(property_value);
-    }
-    curr_bytes += GetTransferredBytes<N>(nodes[i]);
   }
+  return tensorflow::Status::OK();
 }
 
 // Sets additional fields(uri, state) for artifacts and returns transferred
@@ -210,17 +301,20 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
   LOG(INFO) << "Setting up ...";
   int64 curr_bytes = 0;
 
-  // Gets all the specific types in db to choose from when generating nodes.
+  // Gets all the specific types in db to choose from when inserting nodes.
   // If there's no types in the store, return error.
   std::vector<Type> existing_types;
   TF_RETURN_IF_ERROR(
       GetAndValidateExistingTypes(fill_nodes_config_, *store, existing_types));
   std::uniform_int_distribution<int64> uniform_dist_type_index{
       0, (int64)(existing_types.size() - 1)};
-
   std::minstd_rand0 gen(absl::ToUnixMillis(absl::Now()));
+  // Gets all existing nodes in db to choose from when updating nodes.
+  std::vector<Node> existing_nodes;
+  TF_RETURN_IF_ERROR(
+      GetExistingNodes(fill_nodes_config_, *store, existing_nodes));
+  std::shuffle(std::begin(existing_nodes), std::end(existing_nodes), gen);
 
-  // TODO(briansong) Adds update support.
   for (int64 i = 0; i < num_operations_; ++i) {
     curr_bytes = 0;
     FillNodesWorkItemType put_request;
@@ -235,8 +329,9 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
         auto nodes =
             absl::get<PutArtifactsRequest>(put_request).mutable_artifacts();
         GenerateNodes<ArtifactType, Artifact>(
-            nodes_param, absl::get<ArtifactType>(existing_types[type_index]),
-            *nodes, curr_bytes);
+            fill_nodes_config_, nodes_param,
+            absl::get<ArtifactType>(existing_types[type_index]), *store,
+            existing_nodes, *nodes, curr_bytes);
         curr_bytes +=
             SetArtifactsAdditionalFields(nodes_param.nodes_name, *nodes);
         break;
@@ -246,15 +341,18 @@ tensorflow::Status FillNodes::SetUpImpl(MetadataStore* store) {
         auto nodes =
             absl::get<PutExecutionsRequest>(put_request).mutable_executions();
         GenerateNodes<ExecutionType, Execution>(
-            nodes_param, absl::get<ExecutionType>(existing_types[type_index]),
-            *nodes, curr_bytes);
+            fill_nodes_config_, nodes_param,
+            absl::get<ExecutionType>(existing_types[type_index]), *store,
+            existing_nodes, *nodes, curr_bytes);
         curr_bytes += SetExecutionsAdditionalFields(*nodes);
         break;
       }
       case FillNodesConfig::CONTEXT: {
         InitializePutRequest<PutContextsRequest>(num_nodes, put_request);
         GenerateNodes<ContextType, Context>(
-            nodes_param, absl::get<ContextType>(existing_types[type_index]),
+            fill_nodes_config_, nodes_param,
+            absl::get<ContextType>(existing_types[type_index]), *store,
+            existing_nodes,
             *absl::get<PutContextsRequest>(put_request).mutable_contexts(),
             curr_bytes);
         break;
