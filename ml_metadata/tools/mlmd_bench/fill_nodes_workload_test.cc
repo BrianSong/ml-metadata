@@ -95,6 +95,11 @@ std::vector<WorkloadConfig> EnumerateConfigs(const bool is_update) {
   return configs;
 }
 
+// Checks nodes update status. If the updates are working properly, the number
+// of node custom properties should increase after the updates. This is due to
+// when we insert existing node when setting up db, the number of node custom
+// properties is set to 1 which is less than the number of custom properties
+// when we update the nodes(10 in this case).
 void CheckUpdates(const FillNodesConfig& fill_nodes_config,
                   const std::vector<Node>& nodes_before,
                   const std::vector<Node>& nodes_after,
@@ -242,6 +247,10 @@ TEST_P(FillNodesInsertParameterizedTestFixture, InsertWhenSomeNodesExistTest) {
       existing_nodes_after_insert.size() - existing_nodes_before_insert.size());
 }
 
+// Test fixture that uses the same data configuration for multiple following
+// parameterized FillNodes update tests.
+// The parameter here is the specific Workload configuration that contains
+// the FillNodes update configuration and the number of operations.
 class FillNodesUpdateParameterizedTestFixture
     : public ::testing::TestWithParam<WorkloadConfig> {
  protected:
@@ -262,9 +271,16 @@ class FillNodesUpdateParameterizedTestFixture
   std::unique_ptr<MetadataStore> store_;
 };
 
+// Tests the SetUpImpl() for FillNodes update cases when db is empty in the
+// first place. Then, the SetUpImpl() will make up and insert all the new nodes
+// into db for later update. The number of nodes in db after SetUpImpl() should
+// be the same as the specified number of update operations. Also, checks the
+// SetUpImpl() indeed prepares a list of work items whose length is the same as
+// the specified number of operations.
 TEST_P(FillNodesUpdateParameterizedTestFixture,
        SetUpImplWhenDbContainsNoNodesTest) {
   TF_ASSERT_OK(fill_nodes_update_->SetUp(store_.get()));
+  // Gets the number of nodes inside db after SetUpImpl().
   std::vector<Node> existing_nodes;
   TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
                                 existing_nodes));
@@ -273,9 +289,16 @@ TEST_P(FillNodesUpdateParameterizedTestFixture,
   EXPECT_EQ(GetParam().num_operations(), fill_nodes_update_->num_operations());
 }
 
+// Tests the RunOpImpl() for FillNodes update cases when db is empty in the
+// first place.
+// Checks indeed all the work items have been executed and there are certain
+// number of existed nodes inside db have been updated.
 TEST_P(FillNodesUpdateParameterizedTestFixture,
        UpdateWhenDbContainsNoNodesTest) {
   TF_ASSERT_OK(fill_nodes_update_->SetUp(store_.get()));
+  // Gets the existing nodes in db after set up but before update for later
+  // comparison. The `existing_nodes_before_update` will contains the nodes that
+  // were made up and inserted in the SetUpImpl().
   std::vector<Node> existing_nodes_before_update;
   TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
                                 existing_nodes_before_update));
@@ -284,26 +307,39 @@ TEST_P(FillNodesUpdateParameterizedTestFixture,
     OpStats op_stats;
     TF_ASSERT_OK(fill_nodes_update_->RunOp(i, store_.get(), op_stats));
   }
+
+  // Gets the existing nodes in db after update for later comparison.
   std::vector<Node> existing_nodes_after_update;
   TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
                                 existing_nodes_after_update));
 
+  // The update should update all the made up and inserted nodes in the
+  // SetUpImpl() and not introduce any new nodes in the db.
   ASSERT_EQ(existing_nodes_before_update.size(),
             existing_nodes_after_update.size());
 
+  // For all the nodes inside db, they should be updated. Checks their update
+  // status.
   CheckUpdates(GetParam().fill_nodes_config(), existing_nodes_before_update,
                existing_nodes_after_update,
                (int64)existing_nodes_after_update.size());
 }
 
+// Tests the SetUpImpl() for FillNodes update cases when db contains not enough
+// nodes for update. Then, the SetUpImpl() will make up and insert some new
+// nodes into db for later update. The number of nodes in db after SetUpImpl()
+// should be the same as the specified number of update operations. Also, checks
+// the SetUpImpl() indeed prepares a list of work items whose length is the same
+// as the specified number of operations.
 TEST_P(FillNodesUpdateParameterizedTestFixture,
        SetUpImplWhenDbContainsNotEnoughNodesTest) {
   TF_ASSERT_OK(InsertNodesInDb(
-      /*num_artifact_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
-      /*num_execution_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
-      /*num_context_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
+      /*num_artifact_nodes=*/kNumberOfExistedNodesButNotEnoughForUpdate,
+      /*num_execution_nodes=*/kNumberOfExistedNodesButNotEnoughForUpdate,
+      /*num_context_nodes=*/kNumberOfExistedNodesButNotEnoughForUpdate,
       *store_));
   TF_ASSERT_OK(fill_nodes_update_->SetUp(store_.get()));
+  // Gets the number of nodes inside db after SetUpImpl().
   std::vector<Node> existing_nodes;
   TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
                                 existing_nodes));
@@ -312,47 +348,66 @@ TEST_P(FillNodesUpdateParameterizedTestFixture,
   EXPECT_EQ(GetParam().num_operations(), fill_nodes_update_->num_operations());
 }
 
+// Tests the RunOpImpl() for FillNodes update cases when db contains not enough
+// nodes for update.
+// Checks indeed all the work items have been executed and there are certain
+// number of existed nodes inside db have been updated.
 TEST_P(FillNodesUpdateParameterizedTestFixture,
        UpdateWhenDbContainsNotEnoughNodesTest) {
   TF_ASSERT_OK(InsertNodesInDb(
-      /*num_artifact_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
-      /*num_execution_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
-      /*num_context_types=*/kNumberOfExistedNodesButNotEnoughForUpdate,
+      /*num_artifact_nodes=*/kNumberOfExistedNodesButNotEnoughForUpdate,
+      /*num_execution_nodes=*/kNumberOfExistedNodesButNotEnoughForUpdate,
+      /*num_context_nodes=*/kNumberOfExistedNodesButNotEnoughForUpdate,
       *store_));
-  std::vector<Node> existing_nodes_before_setup;
-  TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
-                                existing_nodes_before_setup));
   TF_ASSERT_OK(fill_nodes_update_->SetUp(store_.get()));
+  // Gets the existing nodes in db after set up but before update for later
+  // comparison. The `existing_nodes_before_update` will contains the existed
+  // nodes and some new nodes that were made up and inserted in the SetUpImpl().
   std::vector<Node> existing_nodes_before_update;
   TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
                                 existing_nodes_before_update));
+
   for (int64 i = 0; i < fill_nodes_update_->num_operations(); ++i) {
     OpStats op_stats;
     TF_ASSERT_OK(fill_nodes_update_->RunOp(i, store_.get(), op_stats));
   }
+
+  // Gets the existing nodes in db after update for later comparison.
   std::vector<Node> existing_nodes_after_update;
   TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
                                 existing_nodes_after_update));
 
+  // The update should update all the nodes that includes some old existed
+  // nodes and some new made up and inserted nodes and not introduce any new
+  // nodes in the db.
   ASSERT_EQ(existing_nodes_before_update.size(),
             existing_nodes_after_update.size());
 
+  // For all the nodes inside db, they should be updated. Checks their update
+  // status.
   CheckUpdates(GetParam().fill_nodes_config(), existing_nodes_before_update,
                existing_nodes_after_update,
                (int64)existing_nodes_after_update.size());
 }
 
+// Tests the SetUpImpl() for FillNodes update cases when db contains enough
+// nodes for update. Then, the SetUpImpl() will not make up and insert any new
+// nodes into db for later update. The number of nodes in db should remain
+// the same before and after the SetUpImpl(). Also, checks the SetUpImpl()
+// indeed prepares a list of work items whose length is the same as the
+// specified number of operations.
 TEST_P(FillNodesUpdateParameterizedTestFixture,
        SetUpImplWhenDbContainsEnoughNodesTest) {
   TF_ASSERT_OK(InsertNodesInDb(
-      /*num_artifact_types=*/kNumberOfExistedNodesEnoughForUpdate,
-      /*num_execution_types=*/kNumberOfExistedNodesEnoughForUpdate,
-      /*num_context_types=*/kNumberOfExistedNodesEnoughForUpdate, *store_));
-  // Gets the number of types inside db before SetUpImpl().
+      /*num_artifact_nodes=*/kNumberOfExistedNodesEnoughForUpdate,
+      /*num_execution_nodes=*/kNumberOfExistedNodesEnoughForUpdate,
+      /*num_context_nodes=*/kNumberOfExistedNodesEnoughForUpdate, *store_));
+  // Gets the number of nodes inside db before SetUpImpl().
   std::vector<Node> existing_nodes_before_setup;
   TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
                                 existing_nodes_before_setup));
   TF_ASSERT_OK(fill_nodes_update_->SetUp(store_.get()));
+  // Gets the number of nodes inside db after SetUpImpl().
   std::vector<Node> existing_nodes_after_setup;
   TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
                                 existing_nodes_after_setup));
@@ -361,13 +416,19 @@ TEST_P(FillNodesUpdateParameterizedTestFixture,
   EXPECT_EQ(GetParam().num_operations(), fill_nodes_update_->num_operations());
 }
 
+// Tests the RunOpImpl() for FillNodes update cases when db contains enough
+// nodes for update. Checks indeed all the work items have been executed and
+// there are certain number of existed nodes inside db have been updated.
 TEST_P(FillNodesUpdateParameterizedTestFixture,
        UpdateWhenDbContainsEnoughNodesTest) {
   TF_ASSERT_OK(InsertNodesInDb(
-      /*num_artifact_types=*/kNumberOfExistedNodesEnoughForUpdate,
-      /*num_execution_types=*/kNumberOfExistedNodesEnoughForUpdate,
-      /*num_context_types=*/kNumberOfExistedNodesEnoughForUpdate, *store_));
+      /*num_artifact_nodes=*/kNumberOfExistedNodesEnoughForUpdate,
+      /*num_execution_nodes=*/kNumberOfExistedNodesEnoughForUpdate,
+      /*num_context_nodes=*/kNumberOfExistedNodesEnoughForUpdate, *store_));
   TF_ASSERT_OK(fill_nodes_update_->SetUp(store_.get()));
+  // Gets the existing nodes in db after set up but before update for later
+  // comparison. The `existing_nodes_before_update` will contains the existed
+  // nodes in db.
   std::vector<Node> existing_nodes_before_update;
   TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
                                 existing_nodes_before_update));
@@ -377,13 +438,18 @@ TEST_P(FillNodesUpdateParameterizedTestFixture,
     TF_ASSERT_OK(fill_nodes_update_->RunOp(i, store_.get(), op_stats));
   }
 
+  // Gets the existing nodes in db after update for later comparison.
   std::vector<Node> existing_nodes_after_update;
   TF_ASSERT_OK(GetExistingNodes(GetParam().fill_nodes_config(), *store_,
                                 existing_nodes_after_update));
 
+  // The update should update the number of update operations existed
+  // nodes inside db and not introduce any new nodes in the db.
   ASSERT_EQ(existing_nodes_before_update.size(),
             existing_nodes_after_update.size());
 
+  // For the number of update operations existed nodes inside db, they
+  // should be updated. Checks their update status.
   CheckUpdates(GetParam().fill_nodes_config(), existing_nodes_before_update,
                existing_nodes_after_update,
                fill_nodes_update_->num_operations());

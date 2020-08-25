@@ -119,109 +119,168 @@ int64 GetTransferredBytes(const NT& node) {
   return bytes;
 }
 
+// Sets ArtifactType `update_type` for modifying the selected update node's
+// properties in later SetNodePropertiesGivenType(). Returns detailed error if
+// query executions failed.
 template <typename N>
 tensorflow::Status SetTypeForUpdateNode(const N& selected_node,
                                         MetadataStore& store,
-                                        Type& update_type) {
-  if (std::is_same<N, Artifact>::value) {
-    GetArtifactTypesByIDRequest request;
-    request.add_type_ids(selected_node.type_id());
-    GetArtifactTypesByIDResponse response;
-    TF_RETURN_IF_ERROR(store.GetArtifactTypesByID(request, &response));
-    update_type = response.artifact_types(0);
-  } else if (std::is_same<N, Execution>::value) {
-    GetExecutionTypesByIDRequest request;
-    request.add_type_ids(selected_node.type_id());
-    GetExecutionTypesByIDResponse response;
-    TF_RETURN_IF_ERROR(store.GetExecutionTypesByID(request, &response));
-    update_type = response.execution_types(0);
-  } else {
-    GetContextTypesByIDRequest request;
-    request.add_type_ids(selected_node.type_id());
-    GetContextTypesByIDResponse response;
-    TF_RETURN_IF_ERROR(store.GetContextTypesByID(request, &response));
-    update_type = response.context_types(0);
-  }
+                                        ArtifactType& update_type) {
+  GetArtifactTypesByIDRequest request;
+  request.add_type_ids(selected_node.type_id());
+  GetArtifactTypesByIDResponse response;
+  TF_RETURN_IF_ERROR(store.GetArtifactTypesByID(request, &response));
+  update_type = response.artifact_types(0);
   return tensorflow::Status::OK();
 }
 
+// Sets ExecutionType `update_type` for modifying the selected update node's
+// properties in later SetNodePropertiesGivenType(). Returns detailed error if
+// query executions failed.
 template <typename N>
-tensorflow::Status InsertMakeUpNodeIntoDb(MetadataStore& store, N& node) {
-  if (std::is_same<N, Artifact>::value) {
-    PutArtifactsRequest request;
-    request.add_artifacts()->CopyFrom(node);
-    PutArtifactsResponse response;
-    TF_RETURN_IF_ERROR(store.PutArtifacts(request, &response));
-    node.set_id(response.artifact_ids(0));
-  } else if (std::is_same<N, Execution>::value) {
-    PutExecutionsRequest request;
-    request.add_executions()->CopyFrom(node);
-    PutExecutionsResponse response;
-    TF_RETURN_IF_ERROR(store.PutExecutions(request, &response));
-    node.set_id(response.execution_ids(0));
-  } else {
-    PutContextsRequest request;
-    request.add_contexts()->CopyFrom(node);
-    PutContextsResponse response;
-    TF_RETURN_IF_ERROR(store.PutContexts(request, &response));
-    node.set_id(response.context_ids(0));
-  }
+tensorflow::Status SetTypeForUpdateNode(const N& selected_node,
+                                        MetadataStore& store,
+                                        ExecutionType& update_type) {
+  GetExecutionTypesByIDRequest request;
+  request.add_type_ids(selected_node.type_id());
+  GetExecutionTypesByIDResponse response;
+  TF_RETURN_IF_ERROR(store.GetExecutionTypesByID(request, &response));
+  update_type = response.execution_types(0);
   return tensorflow::Status::OK();
 }
 
+// Sets ContextType `update_type` for modifying the selected update node's
+// properties in later SetNodePropertiesGivenType(). Returns detailed error if
+// query executions failed.
+template <typename N>
+tensorflow::Status SetTypeForUpdateNode(const N& selected_node,
+                                        MetadataStore& store,
+                                        ContextType& update_type) {
+  GetContextTypesByIDRequest request;
+  request.add_type_ids(selected_node.type_id());
+  GetContextTypesByIDResponse response;
+  TF_RETURN_IF_ERROR(store.GetContextTypesByID(request, &response));
+  update_type = response.context_types(0);
+  return tensorflow::Status::OK();
+}
+
+// Inserts the makeup artifact into db for later update. Returns
+// detailed error if query executions failed.
+tensorflow::Status PrepareMakeUpNodeInDb(MetadataStore& store, Artifact& node) {
+  PutArtifactsRequest request;
+  request.add_artifacts()->CopyFrom(node);
+  PutArtifactsResponse response;
+  TF_RETURN_IF_ERROR(store.PutArtifacts(request, &response));
+  // Sets the node id for indicating this is an update when calling the APIs.
+  node.set_id(response.artifact_ids(0));
+  return tensorflow::Status::OK();
+}
+
+// Inserts the makeup execution into db for later update. Returns
+// detailed error if query executions failed.
+tensorflow::Status PrepareMakeUpNodeInDb(MetadataStore& store,
+                                         Execution& node) {
+  PutExecutionsRequest request;
+  request.add_executions()->CopyFrom(node);
+  PutExecutionsResponse response;
+  TF_RETURN_IF_ERROR(store.PutExecutions(request, &response));
+  // Sets the node id for indicating this is an update when   calling the APIs.
+  node.set_id(response.execution_ids(0));
+  return tensorflow::Status::OK();
+}
+
+// Inserts the makeup context into db for later update. Returns
+// detailed error if query executions failed.
+tensorflow::Status PrepareMakeUpNodeInDb(MetadataStore& store, Context& node) {
+  PutContextsRequest request;
+  request.add_contexts()->CopyFrom(node);
+  PutContextsResponse response;
+  TF_RETURN_IF_ERROR(store.PutContexts(request, &response));
+  // Sets the node id for indicating this is an update when calling the APIs.
+  node.set_id(response.context_ids(0));
+  return tensorflow::Status::OK();
+}
+
+// Prepares update node for later update. If there is no left existing nodes in
+// `existing_nodes` to select from, generates a random makeup node under
+// `insert_type` and insert it into db. Returns detailed error if query
+// executions failed.
 template <typename T, typename N>
 tensorflow::Status PrepareNodeForUpdate(const T& insert_type, const int64 i,
                                         MetadataStore& store,
                                         std::vector<Node>& existing_nodes,
-                                        N& node, Type& update_type) {
+                                        N& node, T& update_type) {
   if (!existing_nodes.empty()) {
     Node existing_node = existing_nodes.back();
-    existing_nodes.pop_back();
     node = absl::get<N>(existing_node);
-    // node.set_type_id(absl::get<N>(existing_node).type_id());
-    // node.set_name(absl::get<N>(existing_node).name());
-    TF_RETURN_IF_ERROR(
-        SetTypeForUpdateNode(absl::get<N>(existing_node), store, update_type));
+    TF_RETURN_IF_ERROR(SetTypeForUpdateNode(node, store, update_type));
+    // Remove this existing update node from `existing_nodes` for avoid abort
+    // errors under multi-thread mode.
+    existing_nodes.pop_back();
   } else {
+    // Updates `update_type` to `insert_type` for makeup node.
     update_type = insert_type;
     node.set_type_id(insert_type.id());
     node.set_name(
         absl::StrCat("makeup_node", absl::FormatTime(absl::Now()), "_", i));
-    TF_RETURN_IF_ERROR(InsertMakeUpNodeIntoDb(store, node));
+    // Inserts this makeup node into db.
+    TF_RETURN_IF_ERROR(PrepareMakeUpNodeInDb(store, node));
   }
   return tensorflow::Status::OK();
 }
 
+// Sets node's properties and custom properties given `type`.
 template <typename T, typename N>
-int64 SetNodePropertiesGivenType(const NodesParam& nodes_param, const T& type,
+int64 SetNodePropertiesGivenType(const FillNodesConfig& fill_nodes_config,
+                                 const NodesParam& nodes_param, const T& type,
                                  N& node) {
+  // Ensures that for update cases, the number of properties / custom properties
+  // being added, deleted or updated is equal to `nodes_param.num_properties`.
+  int64 num_custom_properties_to_clear;
+  if (fill_nodes_config.update()) {
+    num_custom_properties_to_clear = std::min(
+        (int64)node.custom_properties_size(), nodes_param.num_properties);
+    auto it = node.custom_properties().begin();
+    for (int64 i = 0; i < num_custom_properties_to_clear; ++i) {
+      node.mutable_custom_properties()->erase(it->first);
+      it++;
+    }
+  } else {
+    num_custom_properties_to_clear = 0;
+  }
+
+  // If there is no properties that needed to be changed further, return
+  // directly.
+  int64 remain_num_properties_to_change =
+      nodes_param.num_properties - num_custom_properties_to_clear;
+  if (remain_num_properties_to_change == 0) {
+    return GetTransferredBytes<N>(node);
+  }
+
   // Uses "********" as the fake property value for current node.
   std::string property_value(nodes_param.string_value_bytes, '*');
   // Loops over the types properties while generating the node's properties
   // accordingly.
   // TODO(briansong) Adds more property types support.
-  int64 populated_num_properties = 0;
   for (const auto& p : type.properties()) {
     (*node.mutable_properties())[p.first].set_string_value(property_value);
-    if (++populated_num_properties > nodes_param.num_properties) {
+    if (--remain_num_properties_to_change == 0) {
       break;
     }
   }
   // If the node's number of properties is greater than the type, uses custom
   // properties instead.
-  while (populated_num_properties++ < nodes_param.num_properties) {
-    (*node.mutable_custom_properties())[absl::StrCat("custom_p-",
-                                                     populated_num_properties)]
+  while (remain_num_properties_to_change-- > 0) {
+    (*node.mutable_custom_properties())[absl::StrCat(
+                                            "custom_p-",
+                                            remain_num_properties_to_change)]
         .set_string_value(property_value);
   }
   return GetTransferredBytes<N>(node);
 }
 
-// Generates insert node.
-// For insert cases, the node's type will be `type` and its properties will be
-// generated w.r.t. `node_name`, `num_properties` and `string_value_bytes`.
-// Leaves it as return `void` instead of return `int64` for now because
-// FillNodes update mode will return `tensorflow::Status` in the future.
+// Generates insert / update node.  Returns detailed error if query executions
+// failed.
 template <typename T, typename N>
 tensorflow::Status GenerateNodes(const FillNodesConfig& fill_nodes_config,
                                  const NodesParam& nodes_param,
@@ -240,16 +299,22 @@ tensorflow::Status GenerateNodes(const FillNodesConfig& fill_nodes_config,
   // Loops over all the node inside `nodes` and sets up one by one.
   for (int64 i = 0; i < nodes.size(); ++i) {
     if (fill_nodes_config.update()) {
-      Type update_type;
+      // Update mode.
+      T update_type;
       TF_RETURN_IF_ERROR(PrepareNodeForUpdate<T, N>(
           insert_type, i, store, existing_nodes, nodes[i], update_type));
-      curr_bytes += SetNodePropertiesGivenType(
-          nodes_param, absl::get<T>(update_type), nodes[i]);
+      // Uses `update_type` when calling SetNodePropertiesGivenType() for update
+      // mode.
+      curr_bytes += SetNodePropertiesGivenType(fill_nodes_config, nodes_param,
+                                               update_type, nodes[i]);
     } else {
+      // Insert mode.
       nodes[i].set_name(absl::StrCat(nodes_param.nodes_name, "_node_", i));
       nodes[i].set_type_id(insert_type.id());
-      curr_bytes +=
-          SetNodePropertiesGivenType(nodes_param, insert_type, nodes[i]);
+      // Uses `insert_type` when calling SetNodePropertiesGivenType() for insert
+      // mode.
+      curr_bytes += SetNodePropertiesGivenType(fill_nodes_config, nodes_param,
+                                               insert_type, nodes[i]);
     }
   }
   return tensorflow::Status::OK();
