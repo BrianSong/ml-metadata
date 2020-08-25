@@ -203,7 +203,7 @@ tensorflow::Status PrepareMakeUpNodeInDb(MetadataStore& store, Context& node) {
 
 // Prepares update node for later update. If there is no left existing nodes in
 // `existing_nodes` to select from, generates a random makeup node under
-// `insert_type` and insert it into db. Returns detailed error if query
+// `insert_type` and inserts it into db. Returns detailed error if query
 // executions failed.
 template <typename T, typename N>
 tensorflow::Status PrepareNodeForUpdate(const T& insert_type, const int64 i,
@@ -214,16 +214,16 @@ tensorflow::Status PrepareNodeForUpdate(const T& insert_type, const int64 i,
     Node existing_node = existing_nodes.back();
     node = absl::get<N>(existing_node);
     TF_RETURN_IF_ERROR(SetTypeForUpdateNode(node, store, update_type));
-    // Remove this existing update node from `existing_nodes` for avoid abort
-    // errors under multi-thread mode.
+    // Removes this existing update node from `existing_nodes` for avoiding
+    // abort errors under multi-thread environment.
     existing_nodes.pop_back();
   } else {
-    // Updates `update_type` to `insert_type` for makeup node.
+    // Sets `update_type` to `insert_type` for makeup node.
     update_type = insert_type;
     node.set_type_id(insert_type.id());
     node.set_name(
         absl::StrCat("makeup_node", absl::FormatTime(absl::Now()), "_", i));
-    // Inserts this makeup node into db.
+    // Inserts the makeup node into db.
     TF_RETURN_IF_ERROR(PrepareMakeUpNodeInDb(store, node));
   }
   return tensorflow::Status::OK();
@@ -234,10 +234,11 @@ template <typename T, typename N>
 int64 SetNodePropertiesGivenType(const FillNodesConfig& fill_nodes_config,
                                  const NodesParam& nodes_param, const T& type,
                                  N& node) {
-  // Ensures that for update cases, the number of properties / custom properties
-  // being added, deleted or updated is equal to `nodes_param.num_properties`.
   int64 num_custom_properties_to_clear;
   if (fill_nodes_config.update()) {
+    // Ensures that for update cases, the number of properties / custom
+    // properties being added, deleted or updated is equal to
+    // `nodes_param.num_properties`.
     num_custom_properties_to_clear = std::min(
         (int64)node.custom_properties_size(), nodes_param.num_properties);
     auto it = node.custom_properties().begin();
@@ -246,10 +247,11 @@ int64 SetNodePropertiesGivenType(const FillNodesConfig& fill_nodes_config,
       it++;
     }
   } else {
+    // For insert cases, this will be a no-op.
     num_custom_properties_to_clear = 0;
   }
 
-  // If there is no properties that needed to be changed further, return
+  // If there are no properties that needed to be changed further, return
   // directly.
   int64 remain_num_properties_to_change =
       nodes_param.num_properties - num_custom_properties_to_clear;

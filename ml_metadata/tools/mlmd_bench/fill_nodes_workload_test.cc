@@ -98,8 +98,8 @@ std::vector<WorkloadConfig> EnumerateConfigs(const bool is_update) {
 // Checks nodes update status. If the updates are working properly, the number
 // of node custom properties should increase after the updates. This is due to
 // when we insert existing node when setting up db, the number of node custom
-// properties is set to 1 which is less than the number of custom properties
-// when we update the nodes(10 in this case).
+// properties is less than the number of custom properties when we update the
+// nodes.
 void CheckUpdates(const FillNodesConfig& fill_nodes_config,
                   const std::vector<Node>& nodes_before,
                   const std::vector<Node>& nodes_after,
