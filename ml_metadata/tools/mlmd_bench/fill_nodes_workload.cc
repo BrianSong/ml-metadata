@@ -122,8 +122,7 @@ int64 GetTransferredBytes(const NT& node) {
 // Sets ArtifactType `update_type` for modifying the selected update node's
 // properties in later SetNodePropertiesGivenType(). Returns detailed error if
 // query executions failed.
-template <typename N>
-tensorflow::Status SetTypeForUpdateNode(const N& selected_node,
+tensorflow::Status SetTypeForUpdateNode(const Artifact& selected_node,
                                         MetadataStore& store,
                                         ArtifactType& update_type) {
   GetArtifactTypesByIDRequest request;
@@ -137,8 +136,7 @@ tensorflow::Status SetTypeForUpdateNode(const N& selected_node,
 // Sets ExecutionType `update_type` for modifying the selected update node's
 // properties in later SetNodePropertiesGivenType(). Returns detailed error if
 // query executions failed.
-template <typename N>
-tensorflow::Status SetTypeForUpdateNode(const N& selected_node,
+tensorflow::Status SetTypeForUpdateNode(const Execution& selected_node,
                                         MetadataStore& store,
                                         ExecutionType& update_type) {
   GetExecutionTypesByIDRequest request;
@@ -152,8 +150,7 @@ tensorflow::Status SetTypeForUpdateNode(const N& selected_node,
 // Sets ContextType `update_type` for modifying the selected update node's
 // properties in later SetNodePropertiesGivenType(). Returns detailed error if
 // query executions failed.
-template <typename N>
-tensorflow::Status SetTypeForUpdateNode(const N& selected_node,
+tensorflow::Status SetTypeForUpdateNode(const Context& selected_node,
                                         MetadataStore& store,
                                         ContextType& update_type) {
   GetContextTypesByIDRequest request;
