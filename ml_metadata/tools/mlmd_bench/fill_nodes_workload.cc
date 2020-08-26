@@ -33,6 +33,8 @@ limitations under the License.
 namespace ml_metadata {
 namespace {
 
+constexpr int64 kInt64TypeIdSize = 8;
+
 // Parameters for nodes to be inserted per put request.
 struct NodesParam {
   std::string nodes_name;
@@ -97,26 +99,25 @@ void InitializeCurrentNodeBatchParameters(
   type_index = uniform_dist_type_index(gen);
 }
 
-// Calculates the transferred bytes for each node that will be inserted later.
-template <typename NT>
-int64 GetTransferredBytes(const NT& node) {
-  int64 bytes = 0;
-  // Increases `bytes` with the size of current node's `name` and
-  // `type_id`.
-  bytes += node.name().size() + 8;
-  // Increases `bytes` with the size of current node's `properties`.
-  for (const auto& property : node.properties()) {
-    // Includes the bytes for properties' name size.
-    bytes += property.first.size();
-    // Includes the bytes for properties' value size.
-    bytes += property.second.string_value().size();
-  }
-  // Similarly, increases bytes for `custom_properties`.
-  for (const auto& property : node.custom_properties()) {
-    bytes += property.first.size();
-    bytes += property.second.string_value().size();
-  }
+// Gets the transferred bytes for certain property of a node and returns the
+// bytes.
+int64 GetTransferredBytesForNodeProperty(
+    const std::string& property_name,
+    const std::string& property_string_value) {
+  int64 bytes = property_name.size();
+  bytes += property_string_value.size();
   return bytes;
+}
+
+// Calculates and returns the transferred bytes for each node that will be
+// inserted or updated later.
+template <typename NT>
+int64 GetTransferredBytesForNodeAttributes(const bool& update, const NT& node) {
+  // For update, since node's name and type id will not be updated, returns 0.
+  if (update) {
+    return 0;
+  }
+  return node.name().size() + kInt64TypeIdSize;
 }
 
 // Sets ArtifactType `update_type` for modifying the selected update node's
@@ -226,36 +227,34 @@ tensorflow::Status PrepareNodeForUpdate(const T& insert_type, const int64 i,
   return tensorflow::Status::OK();
 }
 
-// Sets node's properties and custom properties given `type`.
+// Clears some custom node properties for update node to ensure that for update
+// cases, the number of properties / custom properties being added, deleted or
+// updated is equal to `nodes_param.num_properties`. Returns the cleared
+// properties' bytes.
+template <typename N>
+int64 ClearSomeProperitesForUpdateNode(const NodesParam& nodes_param,
+                                       int64& num_custom_properties_to_clear,
+                                       N& node) {
+  int64 bytes = 0;
+  num_custom_properties_to_clear = std::min(
+      (int64)node.custom_properties_size(), nodes_param.num_properties);
+  auto it = node.custom_properties().begin();
+  for (int64 i = 0; i < num_custom_properties_to_clear; ++i) {
+    node.mutable_custom_properties()->erase(it->first);
+    bytes += GetTransferredBytesForNodeProperty(it->first,
+                                                it->second.string_value());
+    it++;
+  }
+  return bytes;
+}
+
+// Adds or updates `node`'s properties / custom properties. Returns the added or
+// updated properties' bytes.
 template <typename T, typename N>
-int64 SetNodePropertiesGivenType(const FillNodesConfig& fill_nodes_config,
-                                 const NodesParam& nodes_param, const T& type,
-                                 N& node) {
-  int64 num_custom_properties_to_clear;
-  if (fill_nodes_config.update()) {
-    // Ensures that for update cases, the number of properties / custom
-    // properties being added, deleted or updated is equal to
-    // `nodes_param.num_properties`.
-    num_custom_properties_to_clear = std::min(
-        (int64)node.custom_properties_size(), nodes_param.num_properties);
-    auto it = node.custom_properties().begin();
-    for (int64 i = 0; i < num_custom_properties_to_clear; ++i) {
-      node.mutable_custom_properties()->erase(it->first);
-      it++;
-    }
-  } else {
-    // For insert cases, this will be a no-op.
-    num_custom_properties_to_clear = 0;
-  }
-
-  // If there are no properties that needed to be changed further, return
-  // directly.
-  int64 remain_num_properties_to_change =
-      nodes_param.num_properties - num_custom_properties_to_clear;
-  if (remain_num_properties_to_change == 0) {
-    return GetTransferredBytes<N>(node);
-  }
-
+int64 AddOrUpdateNodeProperties(const NodesParam& nodes_param, const T& type,
+                                int64 remain_num_properties_to_change,
+                                N& node) {
+  int bytes = 0;
   // Uses "********" as the fake property value for current node.
   std::string property_value(nodes_param.string_value_bytes, '*');
   // Loops over the types properties while generating the node's properties
@@ -263,6 +262,7 @@ int64 SetNodePropertiesGivenType(const FillNodesConfig& fill_nodes_config,
   // TODO(briansong) Adds more property types support.
   for (const auto& p : type.properties()) {
     (*node.mutable_properties())[p.first].set_string_value(property_value);
+    bytes += GetTransferredBytesForNodeProperty(p.first, property_value);
     if (--remain_num_properties_to_change == 0) {
       break;
     }
@@ -274,8 +274,45 @@ int64 SetNodePropertiesGivenType(const FillNodesConfig& fill_nodes_config,
                                             "custom_p-",
                                             remain_num_properties_to_change)]
         .set_string_value(property_value);
+    bytes += GetTransferredBytesForNodeProperty(
+        absl::StrCat("custom_p-", remain_num_properties_to_change),
+        property_value);
   }
-  return GetTransferredBytes<N>(node);
+  return bytes;
+}
+
+// Sets node's properties and custom properties given `type`. Returns the
+// transferred bytes for inserting or updating current `node`.
+template <typename T, typename N>
+int64 SetNodePropertiesGivenType(const FillNodesConfig& fill_nodes_config,
+                                 const NodesParam& nodes_param, const T& type,
+                                 N& node) {
+  int64 num_custom_properties_to_clear = 0;
+  int64 transferred_bytes_for_cleared_node_properties = 0;
+  if (fill_nodes_config.update()) {
+    transferred_bytes_for_cleared_node_properties +=
+        ClearSomeProperitesForUpdateNode(nodes_param,
+                                         num_custom_properties_to_clear, node);
+  }
+
+  int64 remain_num_properties_to_change =
+      nodes_param.num_properties - num_custom_properties_to_clear;
+  // If there are no properties that needed to be added or updated further,
+  // return the current total transferred bytes directly.
+  if (remain_num_properties_to_change == 0) {
+    return GetTransferredBytesForNodeAttributes<N>(fill_nodes_config.update(),
+                                                   node) +
+           transferred_bytes_for_cleared_node_properties;
+  }
+
+  int64 transferred_bytes_for_added_or_updated_node_properties =
+      AddOrUpdateNodeProperties(nodes_param, type,
+                                remain_num_properties_to_change, node);
+
+  return GetTransferredBytesForNodeAttributes<N>(fill_nodes_config.update(),
+                                                 node) +
+         transferred_bytes_for_cleared_node_properties +
+         transferred_bytes_for_added_or_updated_node_properties;
 }
 
 // Generates insert / update node.  Returns detailed error if query executions
