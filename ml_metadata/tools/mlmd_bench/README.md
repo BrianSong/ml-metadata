@@ -16,19 +16,21 @@ To better support users and guide the performance tuning of MLMD, we build a ben
 | Workload      | Benchmark APIs | Specification
 | :----------- | :----------- | :----------- |
 | FillTypes      | PutArtifactType /<br> PutExecutionType /<br> PutContextType       | Insert / Update <br> Artifact Type / Execution Type / Context Type <br> Number of properties for each type |
-| FillNodes   | PutArtifact /<br> PutExecution /<br> PutContext        | Insert / Update<br>Artifact / Execution / Context<br>Number of properties for each node <br> Length for string properties<br>APIs’ specification(e.g. number of nodes per request)|
+| FillNodes   | PutArtifact / PutExecution /<br> PutContext        | Insert / Update<br>Artifact / Execution / Context<br>Number of properties for each node <br> Length for string properties of each node<br>APIs’ specification(e.g. number of nodes per request)|
 | FillContextEdges      | PutAttributionsAndAssociation       | Attribution / Association<br>Context / Non-context popularity<br>APIs’ specification(e.g. number of context edges per request)|
 | FillEvents      | PutEvent       | Input / Output Event<br>Artifact / Execution popularity<br>APIs’ specification(e.g. number of events per request)|
-| ReadTypes      | GetArtifactTypes /<br> GetArtifactTypesByID /<br> GetArtifactType ...| The type listing / querying APIs<br>APIs’ specification(e.g. number of ids per request)|
-| ReadNodesByProperties      | GetArtifactsByID /<br> GetArtifactsByType /<br> GetArtifactByTypeAndName ...| The nodes listing / querying APIs<br>APIs’ specification(e.g. number of ids per request)|
-| ReadNodesViaContextEdges      | GetArtifactsByContext /<br> GetContextsByArtifact ...       | The nodes traversal APIs|
+| ReadTypes      | GetArtifactTypes /<br> GetArtifactTypesByID /<br> GetArtifactType /<br> GetExecutionTypes /<br> GetExecutionTypesByID /<br> GetExecutionType /<br> GetContextTypes /<br> GetContextTypesByID /<br> GetContextType  | The type listing / querying APIs<br>APIs’ specification(e.g. number of ids per request)|
+| ReadNodesByProperties      | GetArtifactsByID /<br> GetArtifactsByType /<br> GetArtifactByTypeAndName /<br> GetArtifactsByURI /<br> GetExecutionsByID /<br> GetExecutionsByType /<br> GetExecutionByTypeAndName /<br> GetContextsByID /<br> GetContextsByType /<br> GetContextByTypeAndName | The nodes listing / querying APIs<br>APIs’ specification(e.g. number of ids per request)|
+| ReadNodesViaContextEdges      | GetArtifactsByContext /<br> GetContextsByArtifact /<br> GetExecutionsByContext /<br> GetContextsByExecution| The nodes traversal APIs|
 | ReadEvents      | GetEventsByArtifactIDs /<br> GetEventsByExecutionIDs       | The events listing / querying APIs<br>APIs’ specification(e.g. number of ids per request)|
+
+GetArtifactsByContext(), GetExecutionsByContext(), GetContextsByArtifact() and GetContextsByExecution()
 ## How to use
 
 ### 1. Build from source:
 
 ```shell
-bazel build -c opt --define grpc_no_ares=true //ml_metadata/tools/mlmd_bench:all
+bazel build -c opt --define grpc_no_ares=true //ml_metadata/tools/mlmd_bench:mlmd_bench
 ```
 
 ### 2. Run the binary:
@@ -50,7 +52,7 @@ mlmd_config: {
 workload_configs: {
   fill_types_config: {
     update: false
-    specification: EXECUTION_TYPE
+    specification: ARTIFACT_TYPE
     num_properties: { minimum: 1 maximum: 10 }
   }
   num_operations: 100
@@ -65,7 +67,7 @@ summaries {
   workload_config {
     fill_types_config {
       update: false
-      specification: EXECUTION_TYPE
+      specification: ARTIFACT_TYPE
       num_properties {
         minimum: 1
         maximum: 10
