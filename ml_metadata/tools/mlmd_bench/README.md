@@ -15,8 +15,8 @@ To guide the performance tuning of MLMD and better support users, we propose a a
 ## Benchmark coverage
 | Workload      | Benchmark APIs | Specification
 | ----------- | ----------- | ----------- |
-| FillTypes      | PutArtifactType /<br> PutExecutionType /<br> PutContextType       | Insert / Update <br> Artifact Type / Execution Type / Context Type <br> Number of Properties for each type |
-| FillNodes   | PutArtifact /<br> PutExecution /<br> PutContext        | Insert / Update<br>Artifact / Execution / Context<br>Number of Properties for each node <br> length for string properties<br>APIs’ specification(e.g. number of nodes per request)|
+| FillTypes      | PutArtifactType /<br> PutExecutionType /<br> PutContextType       | Insert / Update <br> Artifact Type / Execution Type / Context Type <br> Number of properties for each type |
+| FillNodes   | PutArtifact /<br> PutExecution /<br> PutContext        | Insert / Update<br>Artifact / Execution / Context<br>Number of properties for each node <br> Length for string properties<br>APIs’ specification(e.g. number of nodes per request)|
 | FillContextEdges      | PutAttributionsAndAssociation       | Attribution / Association<br>Context / Non-context popularity<br>APIs’ specification(e.g. number of context edges per request)|
 | FillEvents      | PutEvent       | Input / Output Event<br>Artifact / Execution popularity<br>APIs’ specification(e.g. number of events per request)|
 | ReadTypes      | GetArtifactTypes /<br> GetArtifactTypesByID /<br> GetArtifactType ...| The type listing / querying APIs<br>APIs’ specification(e.g. number of ids per request)|
