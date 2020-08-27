@@ -1,53 +1,37 @@
 # mlmd_bench
 
-*mlmd_bench* is a MLMD benchmark tool that can measure the MLMD query facility
-performance and scalability for different backends and deployment settings.
-The performance metrics of interests include throughputs of concurrent
-operations and data sizes.
+mlmd_bench is a MLMD benchmark tool that can measure the MLMD query facility performance and scalability for different backends and deployment settings. The performance metrics of interests include throughputs of concurrent operations and data sizes.
 
-## Motivation
+## Introduction
 
 MLMD exposes a provenance graph data model, which consists of {Artifact, Execution, Context, Type} as nodes, and {Event, Association, Attribution, Instance} as edges. Based on the data model, it defines a set of APIs, such as creating and updating nodes and edges, listing nodes by types, traversing nodes via edges.  
 
-The APIs are implemented on various backends (e.g., MySQL, Sqlite, CNS, Spanner) and deployed in different modes (e.g., library, grpc server, lamprey server etc). On the other hand, the integration of MLMD with different partners have different use cases and exhibit different read/write workloads. To improve API performance, it often requires proper optimization in MLMD query implementation or schema reorganization.    
+The APIs are implemented on various backends (e.g., MySQL, Sqlite, CNS, Spanner) and deployed in different modes (e.g., library, grpc server, etc.). On the other hand, the integration of MLMD with different partners have different use cases and exhibit different read/write workloads. To improve API performance, it often requires proper optimization in MLMD query implementation or schema reorganization.    
 
-To guide the performance tuning of MLMD and better support users, we propose a a benchmarking tool, *mlmd_bench*, which can:
+To guide the performance tuning of MLMD and better support users, we propose a a benchmarking tool, mlmd_bench, which can:
 *   Compose different workloads mimicking use cases of integration partners. 
 *   Measure the MLMD operation performance on different backends and deployment modes.
 
-The tool abstraction and design are inspired by [leveldb](https://github.com/google/leveldb) benchmarking tools, and tailored to the MLMD provenance graph data model and workloads. We envision a list of follow-ups to tune query implementations and evolve MLMD schema guided by the benchmark results.
-
 ## Benchmark coverage
-
-|  Workload   | Benchmark MLMD APIs  | Specification
-|  ----  | ----  |
-| FillTypes  | PutArtifactType / PutExecutionType / PutContextType | Insert / Update
-Artifact Type / Execution Type / Context Type
-Number of Properties for each type
-| 单元格  | 单元格 |
-
+| Workload      | Benchmark APIs | Specification
+| ----------- | ----------- | ----------- |
+| FillTypes      | PutArtifactType / PutExecutionType / PutContextType       | Insert / Update <br> Artifact Type / Execution Type / Context Type <br> Number of Properties for each type |
+| FillNodes   | PutArtifact / PutExecution / PutContext        | dsafasd |
+| FillContextEdges      | PutAttributionsAndAssociation       | sdfdas |
+| FillEvents      | PutEvent       | sdfdas |
+| ReadTypes      | GetArtifactTypes / GetArtifactTypesByID / GetArtifactType ...| sdfdas |
+| ReadNodesByProperties      | GetArtifactsByID / GetArtifactsByType / GetArtifactByTypeAndName ...| sdfdas |
+| ReadNodesViaContextEdges      | GetArtifactsByContext / GetContextsByArtifact ...       | sdfdas |
+| ReadEvents      | GetEventsByArtifactIDs / GetEventsByExecutionIDs       | sdfdas |
 ## How to use
 
-### 1. Prerequisites
-
-To compile and use *mlmd_bench*, you need to set up some prerequisites.
-
-#### Install Bazel
-
-If Bazel is not installed on your system, install it now by following [these
-directions](https://bazel.build/versions/master/docs/install.html).
-
-#### Install cmake
-If cmake is not installed on your system, install it now by following [these
-directions](https://cmake.org/install/).
-
-### 2. Build from source:
+### 1. Build from source:
 
 ```shell
 bazel build -c opt --define grpc_no_ares=true //ml_metadata/tools/mlmd_bench:all
 ```
 
-### 3. Run the binary:
+### 2. Run the binary:
 
 ```shell
 cd bazel-bin/ml_metadata/tools/mlmd_bench/
@@ -120,11 +104,3 @@ summaries {
   bytes_per_second: 1110
 }
 ```
-
-## How to test
-
-```shell
-bazel test -c opt --define grpc_no_ares=true //ml_metadata/tools/mlmd_bench:all
-```
-
-## 
