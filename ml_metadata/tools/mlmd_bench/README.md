@@ -6,10 +6,10 @@ mlmd_bench is a MLMD benchmark tool that can measure the MLMD query facility per
 
 MLMD exposes a provenance graph data model, which consists of {Artifact, Execution, Context, Type} as nodes, and {Event, Association, Attribution, Instance} as edges. Based on the data model, it defines a set of APIs, such as creating and updating nodes and edges, listing nodes by types, traversing nodes via edges.  
 
-The APIs are implemented on various backends (e.g., MySQL, Sqlite, CNS, Spanner) and deployed in different modes (e.g., library, grpc server, etc.). On the other hand, the integration of MLMD with different partners have different use cases and exhibit different read/write workloads. To improve API performance, it often requires proper optimization in MLMD query implementation or schema reorganization.    
+The APIs are implemented on various backends (e.g., MySQL, Sqlite) and deployed in different modes (e.g., library, grpc server). On the other hand, the integration of MLMD with different partners have different use cases and exhibit different read/write workloads. To improve API performance, it often requires proper optimization in MLMD query implementation or schema reorganization.    
 
-To guide the performance tuning of MLMD and better support users, we propose a a benchmarking tool, mlmd_bench, which can:
-*   Compose different workloads mimicking use cases of integration partners. 
+To better support users and guide the performance tuning of MLMD, we build a benchmarking tool, mlmd_bench, which can:
+*   Compose different workloads mimicking use cases of different integration partners. 
 *   Measure the MLMD operation performance on different backends and deployment modes.
 
 ## Benchmark coverage
