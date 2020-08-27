@@ -38,11 +38,7 @@ cd bazel-bin/ml_metadata/tools/mlmd_bench/
 ./mlmd_bench --config_file_path=<input mlmd_bench config .pbtxt file path> --output_report_path=<output mlmd_bench summary report file path>
 ```
 
-The input mlmd_bench 
-
-## INPUT OUTPUT FORMAT
-
-### 1. Input is a MLMDBenchConfig protocol buffer message in text format:
+The input should be a MLMDBenchConfig protocol buffer message in text format, e.g.:
 
 ```shell
 mlmd_config: {
@@ -59,18 +55,10 @@ workload_configs: {
   }
   num_operations: 100
 }
-workload_configs: {
-  fill_types_config: {
-    update: true
-    specification: EXECUTION_TYPE
-    num_properties: { minimum: 1 maximum: 10 }
-  }
-  num_operations: 200
-}
 thread_env_config: { num_threads: 10 }
 ```
 
-### 2. Output is a MLMDBenchReport protocol buffer message in text format:
+The output will be a MLMDBenchReport protocol buffer message in text format, e.g.:
 
 ```shell
 summaries {
@@ -87,20 +75,5 @@ summaries {
   }
   microseconds_per_operation: 193183
   bytes_per_second: 351
-}
-summaries {
-  workload_config {
-    fill_types_config {
-      update: true
-      specification: EXECUTION_TYPE
-      num_properties {
-        minimum: 1
-        maximum: 10
-      }
-    }
-    num_operations: 200
-  }
-  microseconds_per_operation: 119221
-  bytes_per_second: 1110
 }
 ```
